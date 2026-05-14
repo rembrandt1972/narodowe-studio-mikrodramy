@@ -206,7 +206,7 @@ with c_left:
                 m_dna = get_system_data(f"SYS_MAPA_{active_p}")
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
-              baza_dna = (
+                baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n---\n"
                     "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
                     "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię uzależnienia widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
