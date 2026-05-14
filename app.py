@@ -49,7 +49,7 @@ if not st.session_state.auth:
 try:
     user_now = st.session_state.user.upper()
     genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
-    model = genai.GenerativeModel('gemini-3.1-pro')
+    model = genai.GenerativeModel('gemini-3.1-pro-preview')
 except Exception as e:
     st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
     st.stop()
