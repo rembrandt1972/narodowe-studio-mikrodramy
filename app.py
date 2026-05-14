@@ -92,10 +92,17 @@ with st.sidebar:
     agent = st.selectbox("Wybierz Agenta:", list(AGENTS.keys()))
     if st.button("Nowy czat"): st.session_state.messages = []
 
-# Konfiguracja Gemini
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-pro-latest')
-
+# --- KONFIGURACJA GEMINI 3.1 PRO (Wersja 2026) ---
+user_now = st.session_state.user.upper() # Zamienia login na KASIA, JULIA lub FIDEL
+try:
+    # Pobiera klucz przypisany do osoby z Twoich Secrets na Streamlit
+    genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
+    
+    # Odpala najnowszy model 3.1 Pro
+    model = genai.GenerativeModel('gemini-3.1-pro')
+except Exception as e:
+    st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
+    st.stop()
 if "messages" not in st.session_state: st.session_state.messages = []
 
 c_left, c_right = st.columns([2, 1])
