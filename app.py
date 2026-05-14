@@ -206,8 +206,33 @@ with c_left:
                 m_dna = get_system_data(f"SYS_MAPA_{active_p}")
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
-                baza_dna = f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n---\n"
-                
+              baza_dna = (
+                    f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n---\n"
+                    "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
+                    "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię uzależnienia widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
+                    "1. ANATOMIA ODCINKA (60-90 sekund):\n"
+                    "- 0-3 sek.: Opening hook / scroll-stopper (natychmiastowe uderzenie wizualne lub tekstowe).\n"
+                    "- 3-15 sek.: Immediate conflict (natychmiastowy konflikt).\n"
+                    "- 15-35 sek.: Eskalacja napięcia.\n"
+                    "- 35-50 sek.: Twist, odwrócenie ról (reversal) lub cios emocjonalny.\n"
+                    "- 50-90 sek.: Ending cliffhook (zmusza do bezwarunkowego kliknięcia w kolejny odcinek).\n\n"
+                    "2. ARCHITEKTURA SEZONU (90 Odcinków):\n"
+                    "- Odc. 1-10 (Premise ignition): Sprzedaj główną fantazję, ranę, niesprawiedliwość lub nierównowagę sił. Odc. 1 musi mieć najsilniejszy opening hook.\n"
+                    "- Odc. 11-20 (Binge lock): Zmień ciekawość w uzależnienie. Rywalizacja, szantaż, fałszywa nadzieja, przerwana bliskość.\n"
+                    "- Odc. 21-30 (First major reversal): Pierwsze wielkie odwrócenie sytuacji. Zmiana układu sił, ukryte dowody, zdrada kogoś bliskiego.\n"
+                    "- Odc. 31-40 (Hero becomes active): Bohaterka przestaje tylko cierpieć i zaczyna działać (zemsta, uwodzenie, sojusze).\n"
+                    "- Odc. 41-50 (Midpoint explosion): Eksplozja w połowie sezonu (np. publiczne ujawnienie, fałszywa śmierć) i jej natychmiastowe konsekwencje.\n"
+                    "- Odc. 51-60 (Deeper secret layer): Odkrycie, że widoczny dotąd konflikt to tylko wierzchołek góry lodowej (ukryte pokrewieństwo, stare zbrodnie). Widz musi zacząć reinterpretować wcześniejsze odcinki.\n"
+                    "- Odc. 61-70 (Darkest stretch): Maksymalny ból emocjonalny, izolacja, szantaż, utrata pozycji. Ale każdy odcinek wciąż musi pchać akcję do przodu.\n"
+                    "- Odc. 71-80 (Endgame setup): Nadzieja wraca, plan wchodzi w życie, ujawnia się ukryty sojusznik.\n"
+                    "- Odc. 81-89 (Final collision): Ostateczne zderzenie i spłata wszystkich obietnic (payoff). Ujawnienie prawdy, sprawiedliwość, zemsta.\n"
+                    "- Odc. 90 (Payoff + future hook): Emocjonalne domknięcie wątków + nowy hook na przyszłość (np. nowe zagrożenie, ciąża, ukryta wiadomość).\n\n"
+                    "3. ZASADY JAKOŚCI I ANTY-POWTÓRZENIA (ZAKAZ TANIOCHY):\n"
+                    "- Zakaz leniwego pisania! Masz unikać ciągłych fizycznych uderzeń w twarz, zbyt wielu przerwanych pocałunków, fałszywych ciąż i tanich szoków.\n"
+                    "- Używaj inteligentnych, zróżnicowanych hooków: Revelation (Odkrycie np. 'Ona jest twoją córką'), Threat (Groźba np. 'Podpisz to albo stracisz wszystko'), Moral (Dylemat moralny), Status (Społeczna degradacja, wyrzucenie z pracy), Desire (Zakazane pożądanie, zazdrość).\n"
+                    "- Hooki mają być emocjonalne, ostre, uzależniające i mocno osadzone w psychologii postaci.\n"
+                    "====================================================\n"
+                )
                 # --- PROMPTY Z POLSKIMI REALIAMI ---
                 if agent == "Genesis PL":
                     sp = (
