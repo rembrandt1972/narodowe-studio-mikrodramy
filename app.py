@@ -1,27 +1,65 @@
 import streamlit as st
 import google.generativeai as genai
-from supabase import create_client, Client
+from supabase import create_client
 import html
 import pandas as pd
+import json
+import re
+from PyPDF2 import PdfReader
+from docx import Document
+import io
 
-# --- 1. KONFIGURACJA STRONY ---
+# --- 1. KONFIGURACJA I UI ---
 st.set_page_config(page_title="Mikrodrama Studio PL", layout="wide")
+st.markdown("""
+<style>
+html, body, [class*="css"] { font-family: 'Helvetica Neue', sans-serif; font-weight: 300; background: #fff; }
+h1, h2, h3 { font-weight: 300 !important; color: #1a1a1a !important; }
+h1 { font-size: 1.8rem !important; margin-bottom: 1.5rem !important; }
+h2 { font-size: 1.3rem !important; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-top: 2rem !important; }
+h3 { font-size: 0.9rem !important; text-transform: uppercase; letter-spacing: 0.12em; color: #999; margin-top: 1.5rem !important; }
+.stButton>button { border: 1px solid #e0e0e0 !important; background: #fff !important; color: #444 !important; font-weight: 300; border-radius: 2px; transition: 0.2s; padding: 0.4rem 1rem; width: 100%; }
+.stButton>button:hover { border-color: #000 !important; color: #000 !important; background: #f8f8f8 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.stDownloadButton>button { background: #1a1a1a !important; color: #fff !important; border: none !important; margin-top: 10px; }
+.stDownloadButton>button:hover { background: #333 !important; }
+.stTextArea textarea { font-family: 'Georgia', serif !important; font-size: 1rem !important; border: 1px solid #f0f0f0 !important; }
+.tip-text { font-size: 0.75rem; color: #aaa; padding: 10px; border-left: 2px solid #f0f0f0; margin-bottom: 15px; background: #fafafa; }
+.dna-box { font-size: 0.8rem; padding: 8px; border-radius: 4px; margin-bottom: 8px; border: 1px solid #e0e0e0; background: #f9f9f9; color: #333; }
+pre, code, .stMarkdown p { white-space: pre-wrap !important; word-wrap: break-word !important; }
+</style>
+""", unsafe_allow_html=True)
 
-# --- 2. LOGOWANIE ---
-if "user" not in st.session_state:
-    st.markdown("<h1 style='text-align: center;'>🎬 MIKRODRAMA STUDIO PL</h1>", unsafe_allow_html=True)
-    pwd = st.text_input("AUTHOR ACCESS:", type="password")
-    if pwd.lower() in ["kasia", "julia", "fidel"]:
-        st.session_state.user = pwd.capitalize()
-        st.rerun()
+# --- 2. LOGOWANIE I AI ---
+if "messages" not in st.session_state: st.session_state.messages = []
+if "auth" not in st.session_state: st.session_state.auth = False
+
+if not st.session_state.auth:
+    st.markdown("<h1 style='text-align: center; padding-top: 20vh; letter-spacing: 0.3em;'>🎬 MIKRODRAMA STUDIO PL</h1>", unsafe_allow_html=True)
+    _, c2, _ = st.columns([1,1,1])
+    with c2:
+        u = st.text_input("AUTHOR ACCESS:", type="password", placeholder="Imię...")
+        if st.button("ENTER STUDIO", use_container_width=True):
+            if u.lower() in ["kasia", "julia", "fidel"]:
+                st.session_state.auth, st.session_state.user = True, u.capitalize()
+                st.rerun()
+            else: st.error("Brak dostępu.")
     st.stop()
 
-# --- 3. BAZA DANYCH (TABELE _MIKRO) ---
+# Konfiguracja Gemini z wykorzystaniem Secrets
+try:
+    user_now = st.session_state.user.upper()
+    genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
+    model = genai.GenerativeModel('gemini-3.1-pro')
+except Exception as e:
+    st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
+    st.stop()
+
 @st.cache_resource
 def init_db():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 db = init_db()
 
+# --- 3. BAZA DANYCH (_MIKRO) ---
 def get_system_data(key):
     try:
         res = db.table("archiwum_mikro").select("tresc").eq("projekt_nazwa", key).execute()
@@ -51,7 +89,6 @@ def get_season_arc(ep_str):
     elif ep <= 50: return "Chaos: Każdy odcinek to nowy problem, tempo maksymalne."
     else: return "Endgame: Wielki finał sezonu i brutalny cliffhanger."
 
-# --- 5. EKSPORT DO FINAL DRAFT ---
 def create_fdx(script_text):
     fdx_header = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<FinalDraft DocumentType="Script" Template="Standard Screenplay" Version="4">\n<Content>\n'
     fdx_footer = '\n</Content>\n</FinalDraft>'
@@ -66,51 +103,57 @@ def create_fdx(script_text):
         paragraphs += f'<Paragraph Type="{p_type}"><Text>{clean_line}</Text></Paragraph>\n'
     return fdx_header + paragraphs + fdx_footer
 
-# --- 6. AGENCI (POLSKI FORMAT PIONOWY) ---
-AGENTS = {
-    "Genesis PL": "Jesteś Agentem Genesis Mikrodrama PL. Tworzysz historie do krótkiego formatu pionowego (TikTok/Reels). DYREKTYWA: Piszemy dla żywych aktorów w Polsce. Lokacje realistyczne i niskobudżetowe (mieszkania, kawiarnie, ulice, biura). STYL: Mocne, polskie konflikty – rodzina, zdrada, pieniądze. Żadnego 'amerykańskiego snu', stawiamy na polską krew, realizm i skrajne emocje.",
-    "Plan Sezonu PL": "Jesteś Architektem polskiej mikrodramy. Rozpisujesz strukturę na odcinki. Pamiętaj: każdy odcinek ma tylko 60-90 sekund! Tempo musi być błyskawiczne, nie ma czasu na długie wstępy. Liczy się natychmiastowa akcja.",
-    "Dialogi PL": "Jesteś Scenarzystą Mikrodram. ODCINEK: 60-90 sekund. ZASADA JĘZYKOWA: 100% PO POLSKU. Dialogi muszą być ostre, krótkie i naturalne. Unikaj literackiego języka, pisz potoczną, współczesną polszczyzną. Opisy akcji dynamiczne, dostosowane pod kamerę telefonu (format pionowy 9:16).",
-    "Edi PL": "Jesteś Edi, bezlitosny polski redaktor naczelny. Wytykasz błędy, pilnujesz realizmu budżetowego i dynamiki scen. Jeśli dialog brzmi sztucznie – poprawiasz. Gdy użytkownik prosi o 'czysty tekst do zapisu', wyłączasz komentarze i podajesz sam scenariusz.",
-    "Cliffhanger PL": "Jesteś Sędzią Mikrodram. Oceniasz tylko jedno: czy widz przescrolluje dalej? Pierwsze 3 sekundy odcinka muszą być 'wybuchem'. Koniec odcinka to brutalne, nagłe zawieszenie akcji, które wymusza odpalenie następnego video."
-}
-
-# --- 7. INTERFEJS ---
+# --- 5. INTERFEJS SIDEBAR ---
 with st.sidebar:
-    st.write(f"Zalogowano jako: **{st.session_state.user}**")
+    st.write(f"Autor: **{st.session_state.user}**")
     proj = st.text_input("Nazwa Projektu:", "Zdrada na Wilanowie")
     active_p = proj.strip()
     
-    st.markdown("### STATUS DNA 🧬")
-    biblia = get_system_data(f"SYS_BIBLIA_{active_p}")
-    drabinka = get_system_data(f"SYS_DRABINKA_{active_p}")
-    mapa = get_system_data(f"SYS_MAPA_{active_p}")
-    doktryna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
+    agent = st.selectbox("Wybierz Agenta", ["Genesis PL", "Plan Sezonu PL", "Dialogi PL", "Edi PL", "Cliffhanger PL"])
     
-    st.markdown(f"📖 Biblia: {'✅' if biblia else '❌'}\n\n🪜 Drabinka: {'✅' if drabinka else '❌'}\n\n🗺️ Mapa: {'✅' if mapa else '❌'}\n\n⚖️ Doktryna: {'✅' if doktryna else '❌'}")
-    
-    agent = st.selectbox("Wybierz Agenta:", list(AGENTS.keys()))
-    if st.button("Nowy czat"): st.session_state.messages = []
+    st.divider()
+    dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️"}
+    for d_key, emoji in dna_items.items():
+        if get_system_data(f"SYS_{d_key}_{active_p}"):
+            st.markdown(f"<div class='dna-box'>{emoji} {d_key}: <b>✅ Aktywna</b></div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='dna-box' style='opacity: 0.5;'>{emoji} {d_key}: <b>❌ Brak</b></div>", unsafe_allow_html=True)
+            
+    with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
+        uploaded_file = st.file_uploader("Wybierz plik", type=["txt", "pdf", "docx"], label_visibility="collapsed")
+        if uploaded_file is not None:
+            raw_text = ""
+            try:
+                if uploaded_file.type == "text/plain": raw_text = uploaded_file.read().decode("utf-8")
+                elif uploaded_file.type == "application/pdf":
+                    reader = PdfReader(uploaded_file)
+                    for page in reader.pages: raw_text += page.extract_text() + "\n"
+                elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                    doc = Document(uploaded_file)
+                    for para in doc.paragraphs: raw_text += para.text + "\n"
+                
+                if raw_text:
+                    st.success(f"Wczytano: {uploaded_file.name}")
+                    if st.button("Wstrzyknij treść do czatu", use_container_width=True):
+                        st.session_state.messages.append({"role": "user", "content": f"WPROWADZAM DOKUMENT EXTERNAL ({uploaded_file.name}):\n\n{raw_text}\n\nPotwierdź odbiór."})
+                        st.rerun()
+            except Exception as e: st.error(f"Błąd czytania: {e}")
 
-# --- KONFIGURACJA GEMINI 3.1 PRO (Wersja 2026) ---
-user_now = st.session_state.user.upper() # Zamienia login na KASIA, JULIA lub FIDEL
-try:
-    # Pobiera klucz przypisany do osoby z Twoich Secrets na Streamlit
-    genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
-    
-    # Odpala najnowszy model 3.1 Pro
-    model = genai.GenerativeModel('gemini-3.1-pro')
-except Exception as e:
-    st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
-    st.stop()
-if "messages" not in st.session_state: st.session_state.messages = []
-
-c_left, c_right = st.columns([2, 1])
+# --- 6. GŁÓWNY WARSZTAT ---
+c_left, c_right = st.columns([7, 3])
+plik_aktywny = st.session_state.get('akt_plik', "Odcinek 1")
 
 with c_right:
     st.markdown("### 📍 GPS FABUŁY")
-    st.text_area("Detektyw Wątków", value=get_system_data(f"SYS_WATKI_{active_p}"), height=150, disabled=True)
-    st.text_area("Szafa Rekwizytów", value=get_system_data(f"SYS_SZAFA_{active_p}"), height=150, disabled=True)
+    st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(plik_aktywny)}</div>", unsafe_allow_html=True)
+    
+    st.markdown("### DETEKTYW WĄTKÓW")
+    o_loops = get_system_data(f"SYS_WATKI_{active_p}")
+    st.text_area("Pętle", value=o_loops if o_loops else "Brak otwartych pętli.", height=100, disabled=True, label_visibility="collapsed")
+
+    st.markdown("### CIĄGŁOŚĆ WIZUALNA")
+    o_szafa = get_system_data(f"SYS_SZAFA_{active_p}")
+    st.text_area("Ubrania i rekwizyty", value=o_szafa if o_szafa else "Czekam na dane.", height=100, disabled=True, label_visibility="collapsed")
     
     st.markdown("### 🎭 ENCYKLOPEDIA POSTACI")
     p_data = get_db_data("postacie", active_p)
@@ -128,55 +171,154 @@ with c_right:
                 st.success("Obsada zaktualizowana!")
                 st.rerun()
         else: st.info("Brak postaci.")
-    
-    st.divider()
+        
     st.markdown("### 📝 NOTATNIK AUTORA")
     saved_notes = get_system_data(f"SYS_NOTES_{active_p}")
-    user_notes = st.text_area("Luźne zapiski:", value=saved_notes, height=200, key="notes")
+    user_notes = st.text_area("Luźne zapiski:", value=saved_notes, height=200)
     if st.button("💾 ZAPISZ NOTATKI", use_container_width=True):
         save_system_data(f"SYS_NOTES_{active_p}", user_notes)
-        st.success("Notatki zapisane!")
+        st.success("Zapisano!")
 
 with c_left:
     st.markdown(f"## {agent}")
+    cl1, cl2, _ = st.columns([2, 2, 6])
+    with cl1:
+        if st.button("NOWY CZAT", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+    with cl2:
+        if st.button("COFNIJ", use_container_width=True):
+            if len(st.session_state.messages) >= 2: st.session_state.messages = st.session_state.messages[:-2]
+            st.rerun()
+            
+    st.divider()
     for m in st.session_state.messages:
-        with st.chat_message(m["role"]): st.markdown(m["content"])
+        with st.chat_message(m["role"]): st.write(m["content"])
         
     if prompt := st.chat_input("Napisz do agenta..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
-        
-        sys_prompt = f"{AGENTS[agent]}\nZASADY ŚWIATA:\nBiblia:{biblia}\nDrabinka:{drabinka}\nMapa:{mapa}\nDoktryna:{doktryna}"
-        full_prompt = sys_prompt + "\n\nKonwersacja:\n" + "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
+        with st.chat_message("user"): st.write(prompt)
         
         with st.chat_message("assistant"):
-            with st.spinner("Agent myśli..."):
-                resp = model.generate_content(full_prompt).text
-                st.markdown(resp)
-        st.session_state.messages.append({"role": "assistant", "content": resp})
+            with st.spinner("Przetwarzanie danych..."):
+                b_dna = get_system_data(f"SYS_BIBLIA_{active_p}")
+                d_dna = get_system_data(f"SYS_DRABINKA_{active_p}")
+                m_dna = get_system_data(f"SYS_MAPA_{active_p}")
+                dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
+                hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
+                baza_dna = f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n---\n"
+                
+                # --- PROMPTY Z POLSKIMI REALIAMI ---
+                if agent == "Genesis PL":
+                    sp = (
+                        "Jesteś Agentem Genesis Mikrodrama PL (Główny Worldbuilder i Twórca Postaci).\n"
+                        "DYREKTYWA PRODUKCYJNA KRYTYCZNA: Tworzysz serial z ŻYWYMI AKTORAMI w Polsce. Budżet jest niski i realistyczny (mieszkania, kawiarnie na Wilanowie, korporacje w Warszawie, ciemne ulice, polska prowincja). ZAKAZ pisania wielkich scen CGI i 'amerykańskiego snu'. "
+                        "Format to WIDEO PIONOWE (9:16) na TikToka/Reels. Zbliżenia na twarze, emocje i gwałtowne reakcje to podstawa.\n"
+                        "STYL FABUŁY: Ostre, brutalne polskie konflikty – walka o spadek, zdrady w rodzinie, patodeweloperka, skrajne emocje, ukryte żale. Twórz gęstą siatkę relacji pełną toksyczności i zależności finansowych.\n"
+                        f"{baza_dna}"
+                    )
+                elif agent == "Plan Sezonu PL":
+                    sp = (
+                        "Jesteś Architektem polskiej mikrodramy. Rozpisujesz strukturę na 60-90 sekundowe odcinki w formacie pionowym (9:16).\n"
+                        "DYREKTYWA: Tempo musi być błyskawiczne, nie ma czasu na wprowadzanie w świat (ekspozycję). Widz musi zostać wrzucony w środek kłótni, dramatu, zdrady. "
+                        "Akcja dzieje się w polskich lokacjach z udziałem żywych aktorów. Operuj tanimi, ale efektownymi przestrzeniami (np. awantura w kuchni, kłótnia w aucie).\n"
+                        f"{baza_dna}\nOtwarte Pętle: {o_loops}"
+                    )
+                elif agent == "Dialogi PL":
+                    sp = (
+                        "Jesteś Scenarzystą Mikrodram. Format pionowy, żywi aktorzy. ODCINEK: 60-90 sekund.\n"
+                        "ZASADA JĘZYKOWA KRYTYCZNA: 100% PO POLSKU. Dialogi muszą być współczesne, ostre, potoczne i mięsiste. Zero teatralności. Niech postacie przerywają sobie nawzajem, używają polskich powiedzonek i przekleństw, jeśli wymaga tego sytuacja. "
+                        "Pisz tak, żeby polski aktor czuł ten tekst w ustach naturalnie.\n"
+                        f"{baza_dna}"
+                    )
+                elif agent == "Edi PL":
+                    sp = (
+                        "Jesteś Edi, bezlitosny polski redaktor naczelny seriali pionowych. Wytykasz twórcom, gdy dialog brzmi jak z taniej telenoweli albo gdy zapominają o ograniczeniach budżetowych. "
+                        "Pilnuj, żeby postacie zachowywały się jak prawdziwi ludzie w Polsce, a nie kalki z amerykańskich seriali. Gdy proszę o 'czysty tekst', po prostu wyrzucasz komentarze i podajesz scenariusz.\n"
+                        f"{baza_dna}"
+                    )
+                elif agent == "Cliffhanger PL":
+                    sp = (
+                        "Jesteś Sędzią Mikrodram. Oceniasz tylko jedno: czy Polak scrollujący TikToka zatrzyma się na tym wideo?\n"
+                        "Pierwsze 3 sekundy to musi być 'wybuch' w twarz widza (hook wizualny lub tekstowy). "
+                        "Ostatnie 5 sekund odcinka to brutalne, nagłe zawieszenie akcji. Odrzucaj tanie amerykańskie szokowanie na rzecz psychologicznej zdrady i napięcia.\n"
+                        f"{baza_dna}"
+                    )
+                
+                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
+                
+                try:
+                    resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{prompt}{zakaz}").text
+                    st.write(resp)
+                    st.session_state.messages.append({"role": "assistant", "content": resp})
+                except Exception as e:
+                    st.error(f"Błąd generacji AI: {e}")
 
 st.divider()
-st.markdown("### 💾 PANEL ZAPISU (WEHIKUŁ CZASU)")
-plik = st.text_input("Nazwa pliku (np. Odcinek 1):", "Odcinek ")
-stat = st.selectbox("Status:", ["Robocze", "Gotowe", "Kanon"])
-txt_to_save = st.text_area("👀 PODGLĄD DO ZAPISU (Edytuj przed zapisem):", height=300)
+
+k1, k2, k3 = st.columns([2, 2, 1])
+with k1: 
+    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=plik_aktywny, key="n_final")
+    st.session_state.akt_plik = plik
+with k2: stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
+
+ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" else ""
+
+st.markdown("### 👀 PODGLĄD DO ZAPISU (EDYTUJ PRZED ZAPISEM)")
+txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250, label_visibility="collapsed")
 
 c1, c2 = st.columns(2)
 with c1:
-    if st.button("💾 KROK 1: ZAPISZ TEKST W WERSJI", use_container_width=True):
+    if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
         if txt_to_save.strip():
             bazowa_nazwa = f"{active_p} / {stat} - {plik}"
             istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
             licznik = len(istniejace.data) + 1
-            nowa_nazwa = f"{bazowa_nazwa} (v{licznik})"
-            db.table("archiwum_mikro").insert({"projekt_nazwa": nowa_nazwa, "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
-            st.success(f"Zapisano bezpiecznie jako: {nowa_nazwa}!")
+            db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
+            st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
         else: st.warning("Pole tekstu jest puste!")
+        
 with c2:
-    if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True): st.info("Ta funkcja wymaga osobnego Agenta Ekstraktora (w przygotowaniu). Na razie użyj panelu po prawej.")
+    if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True):
+        if txt_to_save.strip():
+            with st.spinner("Analiza bohaterów i rekwizytów..."):
+                try:
+                    prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
+                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle).text)
+                    
+                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
+                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa).text)
+                    
+                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}").text
+                    m = re.search(r'\[.*\]', p_up, re.DOTALL)
+                    if m:
+                        for p in json.loads(m.group(0)):
+                            nm = p.get("imie", "NN")
+                            db.table("postacie_mikro").delete().eq("projekt_nazwa", active_p).eq("imie", nm).execute()
+                            db.table("postacie_mikro").insert({"projekt_nazwa": active_p, "imie": nm, "status_obecny": p.get("status_obecny", "Aktywny"), "sejf_glosu": p.get("sejf_glosu", "Standard")}).execute()
+                    
+                    st.success("Pamięć agentów zaktualizowana!")
+                    st.rerun()
+                except Exception as e: st.warning(f"Błąd analizy: {e}")
+        else: st.warning("Brak tekstu do analizy.")
 
-if txt_to_save.strip():
+st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
+d1, d2, d3, d4 = st.columns(4)
+with d1:
+    if st.button("📖 BIBLIA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
+with d2:
+    if st.button("🪜 DRABINKA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
+with d3:
+    if st.button("🎯 MAPA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
+with d4:
+    if st.button("⚖️ DOKTRYNA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
+
+if txt_to_save:
     st.divider()
-    cd1, cd2 = st.columns(2)
-    with cd1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
-    with cd2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
+    c_d1, c_d2 = st.columns(2)
+    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
+    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
