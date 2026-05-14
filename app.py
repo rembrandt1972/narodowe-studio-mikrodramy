@@ -273,10 +273,10 @@ with c_left:
                 
                 zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
                 
-                try:
+               try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{prompt}{zakaz}").text
-                    st.write(resp)
                     st.session_state.messages.append({"role": "assistant", "content": resp})
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Błąd generacji AI: {e}")
 
