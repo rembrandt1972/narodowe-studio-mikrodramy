@@ -70,7 +70,7 @@ def save_system_data(key, content):
     if not content.strip(): return
     try:
         db.table("archiwum_mikro").delete().eq("projekt_nazwa", key).execute()
-        db.table("archiwum_mikro").insert({"projekt_nazwa": key, "tresc": content.replace('\x00', ''), "agent": "System"}).execute()
+        db.table("archiwum_mikro").insert({"projekt_nazwa": key, "tresc": content.replace('\x00', '')}).execute()
     except: pass
 
 def get_db_data(table, project):
