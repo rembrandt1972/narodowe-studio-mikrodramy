@@ -154,6 +154,12 @@ with c_right:
     st.markdown("### DETEKTYW WĄTKÓW")
     o_loops = get_system_data(f"SYS_WATKI_{active_p}")
     st.text_area("Pętle", value=o_loops if o_loops else "Brak otwartych pętli.", height=100, disabled=True, label_visibility="collapsed")
+    st.markdown("### 🧠 PAMIĘĆ SHOWRUNNERA (BRIEF)")
+    o_brief = get_system_data(f"SYS_BRIEF_{active_p}")
+    new_brief = st.text_area("Kluczowe ustalenia:", value=o_brief, height=150, key="brief_area")
+    if st.button("Zapisz Brief", use_container_width=True):
+        save_system_data(f"SYS_BRIEF_{active_p}", new_brief)
+        st.success("Brief zaktualizowany!")
 
     st.markdown("### CIĄGŁOŚĆ WIZUALNA")
     o_szafa = get_system_data(f"SYS_SZAFA_{active_p}")
@@ -215,6 +221,7 @@ with c_left:
                 m_dna = get_system_data(f"SYS_MAPA_{active_p}")
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
                 plik_zewnetrzny = get_system_data(f"SYS_PLIK_{active_p}")
+                brief_projektu = get_system_data(f"SYS_BRIEF_{active_p}")
                 # Pobieramy aktualną obsadę dla Agenta
                 p_data_ai = get_db_data("postacie", active_p)
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
@@ -223,9 +230,13 @@ with c_left:
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-11:-1]])
                 
                 baza_dna = (
-                    f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\nAKTYWNA OBSADA: {obsada_ctx}\n"
+                   baza_dna = (
+                    f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
+                    f"AKTYWNA OBSADA: {obsada_ctx}\n"
+                    f"USTALENIA Z ROZMOWY (BRIEF): {brief_projektu}\n"
                     f"WGRANY DOKUMENT ZEWNĘTRZNY: {plik_zewnetrzny[:25000]}\n---\n"
                     "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
+                )
                     "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię uzależnienia widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
                     "1. ANATOMIA ODCINKA (60-90 sekund):\n"
                     "- 0-3 sek.: Opening hook / scroll-stopper (natychmiastowe uderzenie wizualne lub tekstowe).\n"
