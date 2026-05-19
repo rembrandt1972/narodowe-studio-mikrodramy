@@ -106,7 +106,7 @@ def create_fdx(script_text):
 # --- 5. INTERFEJS SIDEBAR ---
 with st.sidebar:
     st.write(f"Autor: **{st.session_state.user}**")
-    proj = st.text_input("Nazwa Projektu:", "")
+    proj = st.text_input("Nazwa Projektu:", "Mój Serial")
     active_p = proj.strip()
     
     agent = st.selectbox("Wybierz Agenta", ["Genesis PL", "Plan Sezonu PL", "Dialogi PL", "Edi PL", "Cliffhanger PL"])
