@@ -118,15 +118,30 @@ with st.sidebar:
             st.markdown(f"<div class='dna-box'>{emoji} {d_key}: <b>✅ Aktywna</b></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='dna-box' style='opacity: 0.5;'>{emoji} {d_key}: <b>❌ Brak</b></div>", unsafe_allow_html=True)
-            
-    if raw_text:
+with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
+        uploaded_file = st.file_uploader("Wybierz plik", type=["txt", "pdf", "docx"], label_visibility="collapsed")
+        if uploaded_file is not None:
+            raw_text = ""
+            try:
+                if uploaded_file.type == "text/plain": raw_text = uploaded_file.read().decode("utf-8")
+                elif uploaded_file.type == "application/pdf":
+                    reader = PdfReader(uploaded_file)
+                    for page in reader.pages: raw_text += page.extract_text() + "\n"
+                elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                    doc = Document(uploaded_file)
+                    for para in doc.paragraphs: raw_text += para.text + "\n"
+                
+                if raw_text:
                     st.success(f"Wczytano: {uploaded_file.name}")
                     if st.button("Wgraj do pamięci AI", use_container_width=True):
-                        # Zapisujemy cały ciężki tekst do bazy w tle
+                        # Zapis w tle
                         save_system_data(f"SYS_PLIK_{active_p}", raw_text)
-                        # Do czatu wrzucamy tylko elegancki komunikat!
+                        # Czysty komunikat w czacie
                         st.session_state.messages.append({"role": "user", "content": f"Właśnie wgrałem do Twojej pamięci dokument: '{uploaded_file.name}'. Zapoznaj się z nim i powiedz w jednym zdaniu, czy jesteś gotowy do pracy."})
                         st.rerun()
+            except Exception as e: st.error(f"Błąd czytania: {e}")
+            
+    
 
 # --- 6. GŁÓWNY WARSZTAT ---
 c_left, c_right = st.columns([7, 3])
@@ -199,6 +214,7 @@ with c_left:
                 d_dna = get_system_data(f"SYS_DRABINKA_{active_p}")
                 m_dna = get_system_data(f"SYS_MAPA_{active_p}")
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
+                plik_zewnetrzny = get_system_data(f"SYS_PLIK_{active_p}")
                 # Pobieramy aktualną obsadę dla Agenta
                 p_data_ai = get_db_data("postacie", active_p)
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
@@ -207,7 +223,8 @@ with c_left:
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-11:-1]])
                 
                 baza_dna = (
-                   f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\nAKTYWNA OBSADA: {obsada_ctx}\n---\n"
+                    f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\nAKTYWNA OBSADA: {obsada_ctx}\n"
+                    f"WGRANY DOKUMENT ZEWNĘTRZNY: {plik_zewnetrzny[:25000]}\n---\n"
                     "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
                     "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię uzależnienia widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
                     "1. ANATOMIA ODCINKA (60-90 sekund):\n"
