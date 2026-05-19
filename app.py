@@ -123,7 +123,7 @@ with st.sidebar:
                 pliki_projektu = [n for n in all_names if n.startswith(f"{wybrany_proj} / ")]
                 wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
                 
-               if wybrany_plik != "-- Wybierz... --":
+            if wybrany_plik != "-- Wybierz... --":
                     tresc_arch = get_system_data(wybrany_plik)
                     st.text_area("Podgląd:", value=tresc_arch, height=150, disabled=True)
                     
