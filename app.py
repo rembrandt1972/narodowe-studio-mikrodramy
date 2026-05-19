@@ -119,25 +119,14 @@ with st.sidebar:
         else:
             st.markdown(f"<div class='dna-box' style='opacity: 0.5;'>{emoji} {d_key}: <b>❌ Brak</b></div>", unsafe_allow_html=True)
             
-    with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
-        uploaded_file = st.file_uploader("Wybierz plik", type=["txt", "pdf", "docx"], label_visibility="collapsed")
-        if uploaded_file is not None:
-            raw_text = ""
-            try:
-                if uploaded_file.type == "text/plain": raw_text = uploaded_file.read().decode("utf-8")
-                elif uploaded_file.type == "application/pdf":
-                    reader = PdfReader(uploaded_file)
-                    for page in reader.pages: raw_text += page.extract_text() + "\n"
-                elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                    doc = Document(uploaded_file)
-                    for para in doc.paragraphs: raw_text += para.text + "\n"
-                
-                if raw_text:
+    if raw_text:
                     st.success(f"Wczytano: {uploaded_file.name}")
-                    if st.button("Wstrzyknij treść do czatu", use_container_width=True):
-                        st.session_state.messages.append({"role": "user", "content": f"WPROWADZAM DOKUMENT EXTERNAL ({uploaded_file.name}):\n\n{raw_text}\n\nPotwierdź odbiór."})
+                    if st.button("Wgraj do pamięci AI", use_container_width=True):
+                        # Zapisujemy cały ciężki tekst do bazy w tle
+                        save_system_data(f"SYS_PLIK_{active_p}", raw_text)
+                        # Do czatu wrzucamy tylko elegancki komunikat!
+                        st.session_state.messages.append({"role": "user", "content": f"Właśnie wgrałem do Twojej pamięci dokument: '{uploaded_file.name}'. Zapoznaj się z nim i powiedz w jednym zdaniu, czy jesteś gotowy do pracy."})
                         st.rerun()
-            except Exception as e: st.error(f"Błąd czytania: {e}")
 
 # --- 6. GŁÓWNY WARSZTAT ---
 c_left, c_right = st.columns([7, 3])
