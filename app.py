@@ -202,7 +202,7 @@ with c_right:
                 st.rerun()
         else: st.info("Brak postaci.")
         
-          st.markdown("### 📝 NOTATNIK AUTORA")
+           st.markdown("### 📝 NOTATNIK AUTORA")
     saved_notes = get_system_data(f"SYS_NOTES_{active_p}")
     user_notes = st.text_area("Luźne zapiski:", value=saved_notes, height=200)
     if st.button("💾 ZAPISZ NOTATKI", use_container_width=True):
