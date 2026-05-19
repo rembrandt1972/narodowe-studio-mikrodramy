@@ -347,6 +347,11 @@ ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if 
 st.markdown("### 👀 PODGLĄD DO ZAPISU (EDYTUJ PRZED ZAPISEM)")
 txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250, label_visibility="collapsed")
 
+if st.button("💉 WSTRZYKNIJ TEN TEKST DO CZATU"):
+    if txt_to_save.strip():
+        st.session_state.messages.append({"role": "user", "content": f"Oto zaktualizowany tekst:\n\n{txt_to_save}"})
+        st.rerun()
+
 c1, c2 = st.columns(2)
 with c1:
     if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
