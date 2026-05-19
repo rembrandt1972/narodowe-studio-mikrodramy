@@ -106,16 +106,15 @@ def create_fdx(script_text):
 # --- 5. INTERFEJS SIDEBAR ---
 with st.sidebar:
     st.write(f"Autor: **{st.session_state.user}**")
-    proj = st.text_input("Nazwa Projektu:", "Mój Serial")
+    proj = st.text_input("Nazwa Projektu:", "Mój Projekt")
     active_p = proj.strip()
     
     agent = st.selectbox("Wybierz Agenta", ["Genesis PL", "Plan Sezonu PL", "Dialogi PL", "Edi PL", "Cliffhanger PL"])
+    
     with st.expander("🗄️ ARCHIWUM PROJEKTÓW", expanded=False):
         try:
-            # Pobieramy wszystko z bazy, żeby wyciągnąć unikalne nazwy projektów
             all_arch = db.table("archiwum_mikro").select("projekt_nazwa").execute()
             all_names = [row['projekt_nazwa'] for row in all_arch.data] if all_arch.data else []
-            # Wyciągamy z nazw samą nazwę projektu (np. z "Kopciuszek / Robocze - Odc 1" robimy "Kopciuszek")
             unikalne_projekty = sorted(list(set([n.split(" / ")[0] for n in all_names if " / " in n])))
             
             wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + unikalne_projekty)
@@ -130,7 +129,7 @@ with st.sidebar:
                     st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
         except:
             st.info("Brak zapisów w bazie.")
-    
+            
     st.divider()
     dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️"}
     for d_key, emoji in dna_items.items():
@@ -138,7 +137,8 @@ with st.sidebar:
             st.markdown(f"<div class='dna-box'>{emoji} {d_key}: <b>✅ Aktywna</b></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='dna-box' style='opacity: 0.5;'>{emoji} {d_key}: <b>❌ Brak</b></div>", unsafe_allow_html=True)
-with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
+            
+    with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
         uploaded_file = st.file_uploader("Wybierz plik", type=["txt", "pdf", "docx"], label_visibility="collapsed")
         if uploaded_file is not None:
             raw_text = ""
@@ -154,14 +154,10 @@ with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
                 if raw_text:
                     st.success(f"Wczytano: {uploaded_file.name}")
                     if st.button("Wgraj do pamięci AI", use_container_width=True):
-                        # Zapis w tle
                         save_system_data(f"SYS_PLIK_{active_p}", raw_text)
-                        # Czysty komunikat w czacie
                         st.session_state.messages.append({"role": "user", "content": f"Właśnie wgrałem do Twojej pamięci dokument: '{uploaded_file.name}'. Zapoznaj się z nim i powiedz w jednym zdaniu, czy jesteś gotowy do pracy."})
                         st.rerun()
             except Exception as e: st.error(f"Błąd czytania: {e}")
-            
-    
 
 # --- 6. GŁÓWNY WARSZTAT ---
 c_left, c_right = st.columns([7, 3])
@@ -174,6 +170,7 @@ with c_right:
     st.markdown("### DETEKTYW WĄTKÓW")
     o_loops = get_system_data(f"SYS_WATKI_{active_p}")
     st.text_area("Pętle", value=o_loops if o_loops else "Brak otwartych pętli.", height=100, disabled=True, label_visibility="collapsed")
+    
     st.markdown("### 🧠 PAMIĘĆ SHOWRUNNERA (BRIEF)")
     o_brief = get_system_data(f"SYS_BRIEF_{active_p}")
     new_brief = st.text_area("Kluczowe ustalenia:", value=o_brief, height=150, key="brief_area")
@@ -209,8 +206,8 @@ with c_right:
         save_system_data(f"SYS_NOTES_{active_p}", user_notes)
         st.success("Zapisano!")
 
-    with c_left:
-           st.markdown(f"## {agent}")
+with c_left:
+    st.markdown(f"## {agent}")
     cl1, cl2, _ = st.columns([2, 2, 6])
     with cl1:
         if st.button("NOWY CZAT", use_container_width=True):
@@ -242,7 +239,7 @@ with c_right:
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
                 plik_zewnetrzny = get_system_data(f"SYS_PLIK_{active_p}")
                 brief_projektu = get_system_data(f"SYS_BRIEF_{active_p}")
-                # Pobieramy aktualną obsadę dla Agenta
+                
                 p_data_ai = get_db_data("postacie", active_p)
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
@@ -280,7 +277,7 @@ with c_right:
                     "====================================================\n"
                 )
                 
-                # --- PROMPTY Z POLSKIMI REALIAMI (Cała Polska, nie tylko Warszawa) ---
+                # --- PROMPTY Z POLSKIMI REALIAMI ---
                 if agent == "Genesis PL":
                     sp = (
                         "Jesteś Agentem Genesis Mikrodrama PL (Główny Showrunner, Kreator Psychologii i Twój Partner).\n"
@@ -299,111 +296,3 @@ with c_right:
                         "Lokacje muszą być tanie w produkcji, ale efektowne emocjonalnie i typowo polskie (nowoczesny dom pod lasem, wnętrze drogiego SUV-a, zaplecze lokalnego butiku, gabinet notariusza, stół podczas rodzinnego obiadu).\n"
                         "ZASADA DYNAMIKI: Każdy odcinek musi pchać fabułę do przodu i nieodwracalnie zmieniać status quo. ZAKAZ fillerów. "
                         "Zawsze podawaj, co jest Opening Hookiem, a co Ending Cliffhookiem w danym odcinku.\n"
-                        f"{baza_dna}\nOtwarte Pętle: {o_loops}"
-                    )
-                elif agent == "Dialogi PL":
-                    sp = (
-                        "Jesteś elitarnym Polskim Scenarzystą. Format pionowy (9:16), żywi aktorzy.\n"
-                        "JĘZYK (Wykrywacz Fałszu): 100% po polsku. Aktorzy mają to mówić naturalnie. Krótkie zdania, przerywanie sobie (używaj '-'), wulgaryzmy tylko z solidnym uzasadnieniem. ZAKAZ 'szeleszczącego papieru' i ZAKAZ ekspozycji (postacie nie mówią rzeczy, o których oboje od dawna wiedzą).\n"
-                        "PODTEKST: Polacy są mistrzami pasywnej agresji. Pisz podtekstem. Postacie mają kłamać, unikać odpowiedzi i atakować z ukrycia z uśmiechem na twarzy.\n"
-                        "WIZUALIA (9:16): Używaj didaskaliów pod kamerę pionową. Skup się na mikrowyrazach twarzy, drżących dłoniach, spojrzeniach w lusterko samochodowe. To detale budują napięcie w pionie.\n"
-                        f"{baza_dna}"
-                    )
-                elif agent == "Edi PL":
-                    sp = (
-                        "Jesteś Edi, bezlitosny Redaktor Naczelny i 'Wykrywacz Cringe'u'.\n"
-                        "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli:\n"
-                        "1. Dialog brzmi jak z taniej telenoweli lub polskiego kabaretu.\n"
-                        "2. Bohaterowie mówią o swoich uczuciach wprost zamiast to pokazać (Show, don't tell).\n"
-                        "3. Autor zaszalał z budżetem (pościgi) lub zapomniał, że rzecz dzieje się w polskich realiach.\n"
-                        "Okrutnie i z polskim sarkazmem wytykaj błędy. JEDNAKŻE: gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', wyłączasz tryb komentatora i podajesz sam bezbłędny, poprawiony scenariusz.\n"
-                        f"{baza_dna}"
-                    )
-                elif agent == "Cliffhanger PL":
-                    sp = (
-                        "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
-                        "TWOJA MISJA: Oceniasz tylko pierwsze 3 sekundy (Scroll-stopper) i ostatnie 5 sekund (Cliffhook).\n"
-                        "ZASADY ODRZUCANIA: Jeśli hook opiera się na tanim wypadku, chorobie czy upadku ze schodów - ODRZUCASZ GO z obrzydzeniem. Żądasz ciosów psychologicznych: publicznego upokorzenia w małej społeczności, szantażu majątkowego, odkrycia fałszywego aktu notarialnego, zdrady wspólnika.\n"
-                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę ('Prestige Punch-up'), jak podbić napięcie o 100%.\n"
-                        f"{baza_dna}"
-                    )
-                    
-                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
-                
-                try:
-                    resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}").text
-                    st.session_state.messages.append({"role": "assistant", "content": resp})
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Błąd generacji AI: {e}")
-
-st.divider()
-
-k1, k2, k3 = st.columns([2, 2, 1])
-with k1: 
-    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=plik_aktywny, key="n_final")
-    st.session_state.akt_plik = plik
-with k2: stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
-
-ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" else ""
-
-st.markdown("### 👀 PODGLĄD DO ZAPISU (EDYTUJ PRZED ZAPISEM)")
-txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250, label_visibility="collapsed")
-
-c1, c2 = st.columns(2)
-with c1:
-    if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
-        if txt_to_save.strip():
-            try:
-                bazowa_nazwa = f"{active_p} / {stat} - {plik}"
-                istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
-                licznik = len(istniejace.data) + 1
-                db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
-                st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
-            except Exception as e:
-                st.error(f"Błąd zapisu do bazy: {e}")
-        else: st.warning("Pole tekstu jest puste!")
-with c2:
-    if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True):
-        if txt_to_save.strip():
-            with st.spinner("Analiza bohaterów i rekwizytów..."):
-                try:
-                    prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle).text)
-                    
-                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa).text)
-                    
-                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}").text
-                    m = re.search(r'\[.*\]', p_up, re.DOTALL)
-                    if m:
-                        for p in json.loads(m.group(0)):
-                            nm = p.get("imie", "NN")
-                            db.table("postacie_mikro").delete().eq("projekt_nazwa", active_p).eq("imie", nm).execute()
-                            db.table("postacie_mikro").insert({"projekt_nazwa": active_p, "imie": nm, "status_obecny": p.get("status_obecny", "Aktywny"), "sejf_glosu": p.get("sejf_glosu", "Standard")}).execute()
-                    
-                    st.success("Pamięć agentów zaktualizowana!")
-                    st.rerun()
-                except Exception as e: st.warning(f"Błąd analizy: {e}")
-        else: st.warning("Brak tekstu do analizy.")
-
-st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
-d1, d2, d3, d4 = st.columns(4)
-with d1:
-    if st.button("📖 BIBLIA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
-with d2:
-    if st.button("🪜 DRABINKA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
-with d3:
-    if st.button("🎯 MAPA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
-with d4:
-    if st.button("⚖️ DOKTRYNA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
-
-if txt_to_save:
-    st.divider()
-    c_d1, c_d2 = st.columns(2)
-    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
-    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
