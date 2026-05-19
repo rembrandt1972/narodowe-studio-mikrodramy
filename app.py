@@ -229,7 +229,6 @@ with c_left:
                 akt_zadanie = st.session_state.messages[-1]["content"]
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-11:-1]])
                 
-                baza_dna = (
                    baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
                     f"AKTYWNA OBSADA: {obsada_ctx}\n"
