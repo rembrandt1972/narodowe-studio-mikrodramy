@@ -301,4 +301,68 @@ with c_left:
 st.divider()
 
 k1, k2, k3 = st.columns([2, 2, 1])
-with k1:
+with k1: 
+    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=plik_aktywny, key="n_final")
+    st.session_state.akt_plik = plik
+with k2: stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
+
+ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" else ""
+
+st.markdown("### 👀 PODGLĄD DO ZAPISU (EDYTUJ PRZED ZAPISEM)")
+txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250, label_visibility="collapsed")
+
+c1, c2 = st.columns(2)
+with c1:
+    if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
+        if txt_to_save.strip():
+            bazowa_nazwa = f"{active_p} / {stat} - {plik}"
+            istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
+            licznik = len(istniejace.data) + 1
+            db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
+            st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
+        else: st.warning("Pole tekstu jest puste!")
+        
+with c2:
+    if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True):
+        if txt_to_save.strip():
+            with st.spinner("Analiza bohaterów i rekwizytów..."):
+                try:
+                    prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
+                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle).text)
+                    
+                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
+                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa).text)
+                    
+                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}").text
+                    m = re.search(r'\[.*\]', p_up, re.DOTALL)
+                    if m:
+                        for p in json.loads(m.group(0)):
+                            nm = p.get("imie", "NN")
+                            db.table("postacie_mikro").delete().eq("projekt_nazwa", active_p).eq("imie", nm).execute()
+                            db.table("postacie_mikro").insert({"projekt_nazwa": active_p, "imie": nm, "status_obecny": p.get("status_obecny", "Aktywny"), "sejf_glosu": p.get("sejf_glosu", "Standard")}).execute()
+                    
+                    st.success("Pamięć agentów zaktualizowana!")
+                    st.rerun()
+                except Exception as e: st.warning(f"Błąd analizy: {e}")
+        else: st.warning("Brak tekstu do analizy.")
+
+st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
+d1, d2, d3, d4 = st.columns(4)
+with d1:
+    if st.button("📖 BIBLIA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
+with d2:
+    if st.button("🪜 DRABINKA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
+with d3:
+    if st.button("🎯 MAPA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
+with d4:
+    if st.button("⚖️ DOKTRYNA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
+
+if txt_to_save:
+    st.divider()
+    c_d1, c_d2 = st.columns(2)
+    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
+    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
