@@ -185,10 +185,11 @@ with c_right:
     st.markdown("### 📝 NOTATNIK AUTORA")
     saved_notes = get_system_data(f"SYS_NOTES_{active_p}")
     user_notes = st.text_area("Luźne zapiski:", value=saved_notes, height=200)
-        if st.button("💾 ZAPISZ NOTATKI", use_container_width=True):
+    if st.button("💾 ZAPISZ NOTATKI", use_container_width=True):
         save_system_data(f"SYS_NOTES_{active_p}", user_notes)
         st.success("Zapisano!")
-        # --- PRZEGLĄDARKA ARCHIWUM ---
+
+    # --- PRZEGLĄDARKA ARCHIWUM ---
     st.markdown("### 🗄️ ARCHIWUM ODCINKÓW")
     try:
         # Szukamy wszystkich zapisów, które należą do tego projektu
@@ -205,7 +206,6 @@ with c_right:
             st.info("Archiwum jest na razie puste.")
     except Exception as e:
         st.error(f"Błąd ładowania archiwum.")
-
 with c_left:
     st.markdown(f"## {agent}")
     cl1, cl2, _ = st.columns([2, 2, 6])
