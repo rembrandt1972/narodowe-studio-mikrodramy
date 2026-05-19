@@ -334,13 +334,15 @@ c1, c2 = st.columns(2)
 with c1:
     if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
         if txt_to_save.strip():
-            bazowa_nazwa = f"{active_p} / {stat} - {plik}"
-            istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
-            licznik = len(istniejace.data) + 1
-            db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
-            st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
+            try:
+                bazowa_nazwa = f"{active_p} / {stat} - {plik}"
+                istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
+                licznik = len(istniejace.data) + 1
+                db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', '')}).execute()
+                st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
+            except Exception as e:
+                st.error(f"Błąd zapisu do bazy: {e}")
         else: st.warning("Pole tekstu jest puste!")
-        
 with c2:
     if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True):
         if txt_to_save.strip():
