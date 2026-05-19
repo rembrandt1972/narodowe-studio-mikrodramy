@@ -70,7 +70,7 @@ def save_system_data(key, content):
     if not content.strip(): return
     try:
         db.table("archiwum_mikro").delete().eq("projekt_nazwa", key).execute()
-        db.table("archiwum_mikro").insert({"projekt_nazwa": key, "tresc": content.replace('\x00', '')}).execute()
+        db.table("archiwum_mikro").insert({"projekt_nazwa": key, "tresc": content.replace('\x00', ''), "agent": "System"}).execute()
     except: pass
 
 def get_db_data(table, project):
@@ -338,7 +338,7 @@ with c1:
                 bazowa_nazwa = f"{active_p} / {stat} - {plik}"
                 istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
                 licznik = len(istniejace.data) + 1
-                db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', '')}).execute()
+                db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
                 st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
             except Exception as e:
                 st.error(f"Błąd zapisu do bazy: {e}")
