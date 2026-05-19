@@ -123,12 +123,15 @@ with st.sidebar:
                 pliki_projektu = [n for n in all_names if n.startswith(f"{wybrany_proj} / ")]
                 wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
                 
-                if wybrany_plik != "-- Wybierz... --":
+               if wybrany_plik != "-- Wybierz... --":
                     tresc_arch = get_system_data(wybrany_plik)
                     st.text_area("Podgląd:", value=tresc_arch, height=150, disabled=True)
+                    
+                    if st.button("💉 Wstrzyknij do czatu", use_container_width=True):
+                        st.session_state.messages.append({"role": "user", "content": f"Oto przywrócony tekst z archiwum ({wybrany_plik}), pracujmy na nim dalej:\n\n{tresc_arch}"})
+                        st.rerun()
+                        
                     st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
-        except:
-            st.info("Brak zapisów w bazie.")
             
     st.divider()
     dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️"}
