@@ -235,7 +235,6 @@ with c_left:
                     f"USTALENIA Z ROZMOWY (BRIEF): {brief_projektu}\n"
                     f"WGRANY DOKUMENT ZEWNĘTRZNY: {plik_zewnetrzny[:25000]}\n---\n"
                     "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
-                )
                     "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię uzależnienia widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
                     "1. ANATOMIA ODCINKA (60-90 sekund):\n"
                     "- 0-3 sek.: Opening hook / scroll-stopper (natychmiastowe uderzenie wizualne lub tekstowe).\n"
