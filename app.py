@@ -123,7 +123,7 @@ with st.sidebar:
                 pliki_projektu = [n for n in all_names if n.startswith(f"{wybrany_proj} / ")]
                 wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
                 
-            if wybrany_plik != "-- Wybierz... --":
+                if wybrany_plik != "-- Wybierz... --":
                     tresc_arch = get_system_data(wybrany_plik)
                     st.text_area("Podgląd:", value=tresc_arch, height=150, disabled=True)
                     
@@ -132,6 +132,8 @@ with st.sidebar:
                         st.rerun()
                         
                     st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
+        except:
+            st.info("Brak zapisów w bazie.")
             
     st.divider()
     dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️"}
@@ -140,6 +142,7 @@ with st.sidebar:
             st.markdown(f"<div class='dna-box'>{emoji} {d_key}: <b>✅ Aktywna</b></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='dna-box' style='opacity: 0.5;'>{emoji} {d_key}: <b>❌ Brak</b></div>", unsafe_allow_html=True)
+            
     with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
         uploaded_file = st.file_uploader("Wybierz plik", type=["txt", "pdf", "docx"], label_visibility="collapsed")
         if uploaded_file is not None:
@@ -395,19 +398,4 @@ st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
 d1, d2, d3, d4 = st.columns(4)
 with d1:
     if st.button("📖 BIBLIA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
-with d2:
-    if st.button("🪜 DRABINKA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
-with d3:
-    if st.button("🎯 MAPA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
-with d4:
-    if st.button("⚖️ DOKTRYNA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
-
-if txt_to_save:
-    st.divider()
-    c_d1, c_d2 = st.columns(2)
-    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
-    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
+        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st
