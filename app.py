@@ -110,6 +110,26 @@ with st.sidebar:
     active_p = proj.strip()
     
     agent = st.selectbox("Wybierz Agenta", ["Genesis PL", "Plan Sezonu PL", "Dialogi PL", "Edi PL", "Cliffhanger PL"])
+    with st.expander("🗄️ ARCHIWUM PROJEKTÓW", expanded=False):
+        try:
+            # Pobieramy wszystko z bazy, żeby wyciągnąć unikalne nazwy projektów
+            all_arch = db.table("archiwum_mikro").select("projekt_nazwa").execute()
+            all_names = [row['projekt_nazwa'] for row in all_arch.data] if all_arch.data else []
+            # Wyciągamy z nazw samą nazwę projektu (np. z "Kopciuszek / Robocze - Odc 1" robimy "Kopciuszek")
+            unikalne_projekty = sorted(list(set([n.split(" / ")[0] for n in all_names if " / " in n])))
+            
+            wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + unikalne_projekty)
+            
+            if wybrany_proj != "-- Wybierz --":
+                pliki_projektu = [n for n in all_names if n.startswith(f"{wybrany_proj} / ")]
+                wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
+                
+                if wybrany_plik != "-- Wybierz... --":
+                    tresc_arch = get_system_data(wybrany_plik)
+                    st.text_area("Podgląd:", value=tresc_arch, height=150, disabled=True)
+                    st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
+        except:
+            st.info("Brak zapisów w bazie.")
     
     st.divider()
     dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️"}
@@ -189,24 +209,7 @@ with c_right:
         save_system_data(f"SYS_NOTES_{active_p}", user_notes)
         st.success("Zapisano!")
 
-    # --- PRZEGLĄDARKA ARCHIWUM ---
-    st.markdown("### 🗄️ ARCHIWUM ODCINKÓW")
-    try:
-        # Szukamy wszystkich zapisów, które należą do tego projektu
-        arch_data = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{active_p} /%").execute()
-        lista_wersji = [row['projekt_nazwa'] for row in arch_data.data] if arch_data.data else []
-        
-        if lista_wersji:
-            wybrana_wersja = st.selectbox("Zapisane wersje:", ["-- Wybierz z listy --"] + lista_wersji)
-            if wybrana_wersja != "-- Wybierz z listy --":
-                tresc_archiwalna = get_system_data(wybrana_wersja)
-                st.text_area("Podgląd wersji:", value=tresc_archiwalna, height=200, disabled=True)
-                st.download_button("⬇️ Pobierz ten tekst", data=tresc_archiwalna, file_name=f"{wybrana_wersja}.txt", use_container_width=True)
-        else:
-            st.info("Archiwum jest na razie puste.")
-    except Exception as e:
-        st.error(f"Błąd ładowania archiwum.")
-with c_left:
+    with c_left:
     st.markdown(f"## {agent}")
     cl1, cl2, _ = st.columns([2, 2, 6])
     with cl1:
