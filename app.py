@@ -210,6 +210,9 @@ with c_left:
                 d_dna = get_system_data(f"SYS_DRABINKA_{active_p}")
                 m_dna = get_system_data(f"SYS_MAPA_{active_p}")
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
+                # Pobieramy aktualną obsadę dla Agenta
+                p_data_ai = get_db_data("postacie", active_p)
+                obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-11:-1]])
