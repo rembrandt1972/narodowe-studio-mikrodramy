@@ -140,7 +140,6 @@ with st.sidebar:
             st.markdown(f"<div class='dna-box'>{emoji} {d_key}: <b>✅ Aktywna</b></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='dna-box' style='opacity: 0.5;'>{emoji} {d_key}: <b>❌ Brak</b></div>", unsafe_allow_html=True)
-            
     with st.expander("📂 IMPORTUJ DOKUMENT (.txt, .pdf, .docx)"):
         uploaded_file = st.file_uploader("Wybierz plik", type=["txt", "pdf", "docx"], label_visibility="collapsed")
         if uploaded_file is not None:
