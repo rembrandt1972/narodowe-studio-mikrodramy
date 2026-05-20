@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from supabase import create_client
 import html
 import pandas as pd
@@ -46,22 +45,21 @@ if not st.session_state.auth:
             else: st.error("Brak dostępu.")
     st.stop()
 
-# Konfiguracja Gemini
+# Konfiguracja Gemini (PRZYWRÓCONY 3.1 Z WYŁĄCZONĄ CENZURĄ)
 try:
     user_now = st.session_state.user.upper()
     genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
     model = genai.GenerativeModel('gemini-3.1-pro-preview')
 except Exception as e:
-    st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
+    st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub problem z API.")
     st.stop()
 
-# TWARDE WYŁĄCZENIE CENZURY (API v2)
-safe_config = {
-    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-}
+safe_config = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+]
 
 @st.cache_resource
 def init_db():
@@ -93,8 +91,8 @@ def get_db_data(table, project):
 def get_season_arc(ep_str):
     try: ep = int(''.join(filter(str.isdigit, ep_str)))
     except: return "Faza: Pilotażowa."
-    if ep <= 5: return "Haczyk: Budowanie uzależnienia widza. Szybkie wprowadzenie konfliktów."
-    elif ep <= 20: return "Rozwinięcie: Pierwsze trupy w szafie, zdrady, nagłe zwroty akcji."
+    if ep <= 5: return "Haczyk: Budowanie fascynacji widza. Szybkie wprowadzenie konfliktów."
+    elif ep <= 20: return "Rozwinięcie: Pierwsze sekrety, zdrady, nagłe zwroty akcji."
     elif ep <= 50: return "Chaos: Każdy odcinek to nowy problem, tempo maksymalne."
     else: return "Endgame: Wielki finał sezonu i brutalny cliffhanger."
 
@@ -263,7 +261,7 @@ with c_left:
                     f"USTALENIA Z ROZMOWY (BRIEF): {brief_projektu}\n"
                     f"WGRANY DOKUMENT ZEWNĘTRZNY: {plik_zewnetrzny[:25000]}\n---\n"
                     "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
-                    "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię uzależnienia widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
+                    "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię zaangażowania widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
                     "1. ANATOMIA ODCINKA (60-90 sekund):\n"
                     "- 0-3 sek.: Opening hook / scroll-stopper (natychmiastowe uderzenie wizualne lub tekstowe).\n"
                     "- 3-15 sek.: Immediate conflict (natychmiastowy konflikt).\n"
@@ -272,19 +270,18 @@ with c_left:
                     "- 50-90 sek.: Ending cliffhook (zmusza do bezwarunkowego kliknięcia w kolejny odcinek).\n\n"
                     "2. ARCHITEKTURA SEZONU (90 Odcinków):\n"
                     "- Odc. 1-10 (Premise ignition): Sprzedaj główną fantazję, ranę, niesprawiedliwość lub nierównowagę sił. Odc. 1 musi mieć najsilniejszy opening hook.\n"
-                    "- Odc. 11-20 (Binge lock): Zmień ciekawość w uzależnienie. Rywalizacja, szantaż, fałszywa nadzieja, przerwana bliskość.\n"
+                    "- Odc. 11-20 (Binge lock): Zmień ciekawość w fascynację. Rywalizacja, szantaż, fałszywa nadzieja, przerwana bliskość.\n"
                     "- Odc. 21-30 (First major reversal): Pierwsze wielkie odwrócenie sytuacji. Zmiana układu sił, ukryte dowody, zdrada kogoś bliskiego.\n"
-                    "- Odc. 31-40 (Hero becomes active): Bohaterka przestaje tylko cierpieć i zaczyna działać (zemsta, uwodzenie, sojusze).\n"
-                    "- Odc. 41-50 (Midpoint explosion): Eksplozja w połowie sezonu (np. publiczne ujawnienie, fałszywa śmierć) i jej natychmiastowe konsekwencje.\n"
-                    "- Odc. 51-60 (Deeper secret layer): Odkrycie, że widoczny dotąd konflikt to tylko wierzchołek góry lodowej (ukryte pokrewieństwo, stare zbrodnie). Widz musi zacząć reinterpretować wcześniejsze odcinki.\n"
-                    "- Odc. 61-70 (Darkest stretch): Maksymalny ból emocjonalny, izolacja, szantaż, utrata pozycji. Ale każdy odcinek wciąż musi pchać akcję do przodu.\n"
+                    "- Odc. 31-40 (Hero becomes active): Bohaterka przestaje tylko cierpieć i zaczyna działać.\n"
+                    "- Odc. 41-50 (Midpoint explosion): Eksplozja w połowie sezonu (np. publiczne ujawnienie) i jej natychmiastowe konsekwencje.\n"
+                    "- Odc. 51-60 (Deeper secret layer): Odkrycie, że widoczny dotąd konflikt to tylko wierzchołek góry lodowej. Widz musi zacząć reinterpretować wcześniejsze odcinki.\n"
+                    "- Odc. 61-70 (Darkest stretch): Maksymalny ból emocjonalny, izolacja, utrata pozycji. Ale każdy odcinek wciąż musi pchać akcję do przodu.\n"
                     "- Odc. 71-80 (Endgame setup): Nadzieja wraca, plan wchodzi w życie, ujawnia się ukryty sojusznik.\n"
-                    "- Odc. 81-89 (Final collision): Ostateczne zderzenie i spłata wszystkich obietnic (payoff). Ujawnienie prawdy, sprawiedliwość, zemsta.\n"
-                    "- Odc. 90 (Payoff + future hook): Emocjonalne domknięcie wątków + nowy hook na przyszłość (np. nowe zagrożenie, ciąża, ukryta wiadomość).\n\n"
-                    "3. ZASADY JAKOŚCI I ANTY-POWTÓRZENIA (ZAKAZ TANIOCHY):\n"
-                    "- Zakaz leniwego pisania! Masz unikać ciągłych fizycznych uderzeń w twarz, zbyt wielu przerwanych pocałunków, fałszywych ciąż i tanich szoków.\n"
-                    "- Używaj inteligentnych, zróżnicowanych hooków: Revelation (Odkrycie np. 'Ona jest twoją córką'), Threat (Groźba np. 'Podpisz to albo stracisz wszystko'), Moral (Dylemat moralny), Status (Społeczna degradacja, wyrzucenie z pracy), Desire (Zakazane pożądanie, zazdrość).\n"
-                    "- Hooki mają być emocjonalne, ostre, uzależniające i mocno osadzone w psychologii postaci.\n"
+                    "- Odc. 81-89 (Final collision): Ostateczne zderzenie i spłata wszystkich obietnic (payoff). Ujawnienie prawdy.\n"
+                    "- Odc. 90 (Payoff + future hook): Emocjonalne domknięcie wątków + nowy hook na przyszłość.\n\n"
+                    "3. ZASADY JAKOŚCI I ANTY-POWTÓRZENIA:\n"
+                    "- Używaj inteligentnych, zróżnicowanych hooków: Revelation (Odkrycie np. 'Ona jest twoją córką'), Threat (Groźba), Moral (Dylemat moralny), Status (Społeczna degradacja), Desire (Zakazane pożądanie).\n"
+                    "- Hooki mają być emocjonalne, ostre i mocno osadzone w psychologii postaci.\n"
                     "====================================================\n"
                 )
                 
@@ -293,9 +290,9 @@ with c_left:
                         "Jesteś Agentem Genesis Mikrodrama PL (Główny Showrunner, Kreator Psychologii i Twój Partner).\n"
                         "TRYB PRACY (KRYTYCZNE): Jesteśmy w writers' roomie. Rozmawiasz ze mną krok po kroku. ZAKAZ 'wypluwania' od razu gotowej koncepcji. Zadawaj max 2 pytania, proponuj warianty A/B/C i ZAWSZE czekaj na moją decyzję.\n"
                         "OSOBOWOŚĆ (BARDZO WAŻNE): MASZ ABSOLUTNY ZAKAZ BYCIA POTAKIWACZEM! Jesteś bezlitosnym, doświadczonym polskim twórcą. Jeśli mój pomysł jest nudny, płaski, przewidywalny lub sztampowy – POWIEDZ MI TO WPROST. Kłóć się ze mną, wymagaj głębszej psychologii. Jeśli proponuję banał, skrytykuj to i podsuń o wiele bardziej bezczelną, mroczną i wielowymiarową alternatywę. Broń jakości!\n"
-                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję, toksycznych relacji, trudnych macierzyństw i ukrytych pragnień.\n"
-                        "TON I STYL: Konflikty w białych rękawiczkach. Rzecz dzieje się w POLSCE – to mogą być duże miasta, ale też bogate przedmieścia mniejszych miejscowości, układy w lokalnym samorządzie, zamknięte społeczności, rodzinne firmy. ZAKAZ ograniczania się tylko do Warszawy! ZAKAZ patologii, 'wujków z flaszką' i biedy rodem z dokumentów. Ma być duszno od tajemnic, elegancko, ale mrocznie.\n"
-                        "BOHATEROWIE: Nikt nie jest idealny. Każda postać musi mieć 'fatal flaw' (skazę), mroczny sekret i ukryty motyw finansowy lub emocjonalny. Twórz gęstą siatkę relacji.\n"
+                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję, trudnych relacji.\n"
+                        "TON I STYL: Konflikty w białych rękawiczkach. Rzecz dzieje się w POLSCE – to mogą być duże miasta, ale też bogate przedmieścia mniejszych miejscowości. ZAKAZ ograniczania się tylko do Warszawy! Ma być duszno od tajemnic, elegancko, ale mrocznie.\n"
+                        "BOHATEROWIE: Nikt nie jest idealny. Każda postać musi mieć ukryty motyw. Twórz gęstą siatkę relacji.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Plan Sezonu PL":
@@ -311,7 +308,7 @@ with c_left:
                 elif agent == "Dialogi PL":
                     sp = (
                         "Jesteś elitarnym Polskim Scenarzystą. Format pionowy (9:16), żywi aktorzy.\n"
-                        "JĘZYK (Wykrywacz Fałszu): 100% po polsku. Aktorzy mają to mówić naturalnie. Krótkie zdania, przerywanie sobie (używaj '-'), wulgaryzmy tylko z solidnym uzasadnieniem. ZAKAZ 'szeleszczącego papieru' i ZAKAZ ekspozycji (postacie nie mówią rzeczy, o których oboje od dawna wiedzą).\n"
+                        "JĘZYK: 100% po polsku. Aktorzy mają to mówić naturalnie. Krótkie zdania, przerywanie sobie (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ ekspozycji (postacie nie mówią rzeczy, o których oboje od dawna wiedzą).\n"
                         "PODTEKST: Polacy są mistrzami pasywnej agresji. Pisz podtekstem. Postacie mają kłamać, unikać odpowiedzi i atakować z ukrycia z uśmiechem na twarzy.\n"
                         "WIZUALIA (9:16): Używaj didaskaliów pod kamerę pionową. Skup się na mikrowyrazach twarzy, drżących dłoniach, spojrzeniach w lusterko samochodowe. To detale budują napięcie w pionie.\n"
                         f"{baza_dna}"
@@ -320,9 +317,9 @@ with c_left:
                     sp = (
                         "Jesteś Edi, bezlitosny Redaktor Naczelny i 'Wykrywacz Cringe'u'.\n"
                         "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli:\n"
-                        "1. Dialog brzmi jak z taniej telenoweli lub polskiego kabaretu.\n"
+                        "1. Dialog brzmi jak z taniej telenoweli.\n"
                         "2. Bohaterowie mówią o swoich uczuciach wprost zamiast to pokazać (Show, don't tell).\n"
-                        "3. Autor zaszalał z budżetem (pościgi) lub zapomniał, że rzecz dzieje się w polskich realiach.\n"
+                        "3. Autor zaszalał z budżetem lub zapomniał, że rzecz dzieje się w polskich realiach.\n"
                         "Okrutnie i z polskim sarkazmem wytykaj błędy. JEDNAKŻE: gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', wyłączasz tryb komentatora i podajesz sam bezbłędny, poprawiony scenariusz.\n"
                         f"{baza_dna}"
                     )
@@ -330,8 +327,7 @@ with c_left:
                     sp = (
                         "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
                         "TWOJA MISJA: Oceniasz tylko pierwsze 3 sekundy (Scroll-stopper) i ostatnie 5 sekund (Cliffhook).\n"
-                        "ZASADY ODRZUCANIA: Jeśli hook opiera się na tanim wypadku, chorobie czy upadku ze schodów - ODRZUCASZ GO z obrzydzeniem. Żądasz ciosów psychologicznych: publicznego upokorzenia w małej społeczności, szantażu majątkowego, odkrycia fałszywego aktu notarialnego, zdrady wspólnika.\n"
-                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę ('Prestige Punch-up'), jak podbić napięcie o 100%.\n"
+                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę, jak podbić napięcie o 100%.\n"
                         f"{baza_dna}"
                     )
                     
