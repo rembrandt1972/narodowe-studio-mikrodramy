@@ -54,6 +54,14 @@ except Exception as e:
     st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
     st.stop()
 
+# WYŁĄCZENIE CENZURY (BARDZO WAŻNE DO PISANIA THRILLERÓW)
+safe_config = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+]
+
 @st.cache_resource
 def init_db():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
@@ -333,7 +341,7 @@ with c_left:
                 zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
                 
                 try:
-                    resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}").text
+                    resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
                     st.session_state.messages.append({"role": "assistant", "content": resp})
                     st.rerun()
                 except Exception as e:
@@ -376,12 +384,12 @@ with c2:
             with st.spinner("Analiza bohaterów i rekwizytów..."):
                 try:
                     prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle).text)
+                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle, safety_settings=safe_config).text)
                     
                     prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa).text)
+                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa, safety_settings=safe_config).text)
                     
-                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}").text
+                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}", safety_settings=safe_config).text
                     m = re.search(r'\[.*\]', p_up, re.DOTALL)
                     if m:
                         for p in json.loads(m.group(0)):
@@ -398,4 +406,19 @@ st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
 d1, d2, d3, d4 = st.columns(4)
 with d1:
     if st.button("📖 BIBLIA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st
+        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
+with d2:
+    if st.button("🪜 DRABINKA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
+with d3:
+    if st.button("🎯 MAPA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
+with d4:
+    if st.button("⚖️ DOKTRYNA", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
+
+if txt_to_save:
+    st.divider()
+    c_d1, c_d2 = st.columns(2)
+    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
+    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
