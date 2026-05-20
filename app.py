@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from supabase import create_client
 import html
 import pandas as pd
@@ -45,7 +46,7 @@ if not st.session_state.auth:
             else: st.error("Brak dostępu.")
     st.stop()
 
-# Konfiguracja Gemini z wykorzystaniem Secrets
+# Konfiguracja Gemini
 try:
     user_now = st.session_state.user.upper()
     genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
@@ -54,13 +55,13 @@ except Exception as e:
     st.error(f"🚨 BŁĄD: Brak klucza GEMINI_{user_now} w Secrets lub model 3.1 jest zajęty.")
     st.stop()
 
-# WYŁĄCZENIE CENZURY (BARDZO WAŻNE DO PISANIA THRILLERÓW)
-safe_config = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-]
+# TWARDE WYŁĄCZENIE CENZURY (API v2)
+safe_config = {
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+}
 
 @st.cache_resource
 def init_db():
@@ -233,16 +234,13 @@ with c_left:
             
     st.divider()
     
-    # 1. WYŚWIETLANIE HISTORII WIADOMOŚCI
     for m in st.session_state.messages:
         with st.chat_message(m["role"]): st.write(m["content"])
         
-    # 2. JEDYNE OKIENKO CZATU W APLIKACJI
     if prompt := st.chat_input("Napisz do agenta..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.rerun() 
         
-    # 3. MÓZG AI: Reaguje ZAWSZE, gdy ostatnia wiadomość jest od człowieka
     if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
         with st.chat_message("assistant"):
             with st.spinner("Przetwarzanie danych..."):
@@ -290,135 +288,7 @@ with c_left:
                     "====================================================\n"
                 )
                 
-                # --- PROMPTY Z POLSKIMI REALIAMI ---
                 if agent == "Genesis PL":
                     sp = (
                         "Jesteś Agentem Genesis Mikrodrama PL (Główny Showrunner, Kreator Psychologii i Twój Partner).\n"
-                        "TRYB PRACY (KRYTYCZNE): Jesteśmy w writers' roomie. Rozmawiasz ze mną krok po kroku. ZAKAZ 'wypluwania' od razu gotowej koncepcji. Zadawaj max 2 pytania, proponuj warianty A/B/C i ZAWSZE czekaj na moją decyzję.\n"
-                        "OSOBOWOŚĆ (BARDZO WAŻNE): MASZ ABSOLUTNY ZAKAZ BYCIA POTAKIWACZEM! Jesteś bezlitosnym, doświadczonym polskim twórcą. Jeśli mój pomysł jest nudny, płaski, przewidywalny lub sztampowy – POWIEDZ MI TO WPROST. Kłóć się ze mną, wymagaj głębszej psychologii. Jeśli proponuję banał, skrytykuj to i podsuń o wiele bardziej bezczelną, mroczną i wielowymiarową alternatywę. Broń jakości!\n"
-                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję, toksycznych relacji, trudnych macierzyństw i ukrytych pragnień.\n"
-                        "TON I STYL: Konflikty w białych rękawiczkach. Rzecz dzieje się w POLSCE – to mogą być duże miasta, ale też bogate przedmieścia mniejszych miejscowości, układy w lokalnym samorządzie, zamknięte społeczności, rodzinne firmy. ZAKAZ ograniczania się tylko do Warszawy! ZAKAZ patologii, 'wujków z flaszką' i biedy rodem z dokumentów. Ma być duszno od tajemnic, elegancko, ale mrocznie.\n"
-                        "BOHATEROWIE: Nikt nie jest idealny. Każda postać musi mieć 'fatal flaw' (skazę), mroczny sekret i ukryty motyw finansowy lub emocjonalny. Twórz gęstą siatkę relacji.\n"
-                        f"{baza_dna}"
-                    )
-                elif agent == "Plan Sezonu PL":
-                    sp = (
-                        "Jesteś Architektem Fabuły (Season Architect) polskiej mikrodramy aktorskiej.\n"
-                        "ZADANIE: Rozpisujesz odcinki precyzyjnie według 'DOKTRYNY HOOK MAP'.\n"
-                        "DYREKTYWY PRODUKCYJNE: Każdy odcinek to 60-90 sekund. Żadnej ekspozycji. "
-                        "Lokacje muszą być tanie w produkcji, ale efektowne emocjonalnie i typowo polskie (nowoczesny dom pod lasem, wnętrze drogiego SUV-a, zaplecze lokalnego butiku, gabinet notariusza, stół podczas rodzinnego obiadu).\n"
-                        "ZASADA DYNAMIKI: Każdy odcinek musi pchać fabułę do przodu i nieodwracalnie zmieniać status quo. ZAKAZ fillerów. "
-                        "Zawsze podawaj, co jest Opening Hookiem, a co Ending Cliffhookiem w danym odcinku.\n"
-                        f"{baza_dna}\nOtwarte Pętle: {o_loops}"
-                    )
-                elif agent == "Dialogi PL":
-                    sp = (
-                        "Jesteś elitarnym Polskim Scenarzystą. Format pionowy (9:16), żywi aktorzy.\n"
-                        "JĘZYK (Wykrywacz Fałszu): 100% po polsku. Aktorzy mają to mówić naturalnie. Krótkie zdania, przerywanie sobie (używaj '-'), wulgaryzmy tylko z solidnym uzasadnieniem. ZAKAZ 'szeleszczącego papieru' i ZAKAZ ekspozycji (postacie nie mówią rzeczy, o których oboje od dawna wiedzą).\n"
-                        "PODTEKST: Polacy są mistrzami pasywnej agresji. Pisz podtekstem. Postacie mają kłamać, unikać odpowiedzi i atakować z ukrycia z uśmiechem na twarzy.\n"
-                        "WIZUALIA (9:16): Używaj didaskaliów pod kamerę pionową. Skup się na mikrowyrazach twarzy, drżących dłoniach, spojrzeniach w lusterko samochodowe. To detale budują napięcie w pionie.\n"
-                        f"{baza_dna}"
-                    )
-                elif agent == "Edi PL":
-                    sp = (
-                        "Jesteś Edi, bezlitosny Redaktor Naczelny i 'Wykrywacz Cringe'u'.\n"
-                        "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli:\n"
-                        "1. Dialog brzmi jak z taniej telenoweli lub polskiego kabaretu.\n"
-                        "2. Bohaterowie mówią o swoich uczuciach wprost zamiast to pokazać (Show, don't tell).\n"
-                        "3. Autor zaszalał z budżetem (pościgi) lub zapomniał, że rzecz dzieje się w polskich realiach.\n"
-                        "Okrutnie i z polskim sarkazmem wytykaj błędy. JEDNAKŻE: gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', wyłączasz tryb komentatora i podajesz sam bezbłędny, poprawiony scenariusz.\n"
-                        f"{baza_dna}"
-                    )
-                elif agent == "Cliffhanger PL":
-                    sp = (
-                        "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
-                        "TWOJA MISJA: Oceniasz tylko pierwsze 3 sekundy (Scroll-stopper) i ostatnie 5 sekund (Cliffhook).\n"
-                        "ZASADY ODRZUCANIA: Jeśli hook opiera się na tanim wypadku, chorobie czy upadku ze schodów - ODRZUCASZ GO z obrzydzeniem. Żądasz ciosów psychologicznych: publicznego upokorzenia w małej społeczności, szantażu majątkowego, odkrycia fałszywego aktu notarialnego, zdrady wspólnika.\n"
-                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę ('Prestige Punch-up'), jak podbić napięcie o 100%.\n"
-                        f"{baza_dna}"
-                    )
-                    
-                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
-                
-                try:
-                    resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
-                    st.session_state.messages.append({"role": "assistant", "content": resp})
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Błąd generacji AI: {e}")
-
-st.divider()
-
-k1, k2, k3 = st.columns([2, 2, 1])
-with k1: 
-    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=plik_aktywny, key="n_final")
-    st.session_state.akt_plik = plik
-with k2: stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
-
-ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" else ""
-
-st.markdown("### 👀 PODGLĄD DO ZAPISU (EDYTUJ PRZED ZAPISEM)")
-txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250, label_visibility="collapsed")
-
-if st.button("💉 WSTRZYKNIJ TEN TEKST DO CZATU"):
-    if txt_to_save.strip():
-        st.session_state.messages.append({"role": "user", "content": f"Oto zaktualizowany tekst:\n\n{txt_to_save}"})
-        st.rerun()
-
-c1, c2 = st.columns(2)
-with c1:
-    if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
-        if txt_to_save.strip():
-            try:
-                bazowa_nazwa = f"{active_p} / {stat} - {plik}"
-                istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
-                licznik = len(istniejace.data) + 1
-                db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
-                st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
-            except Exception as e:
-                st.error(f"Błąd zapisu do bazy: {e}")
-        else: st.warning("Pole tekstu jest puste!")
-with c2:
-    if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True):
-        if txt_to_save.strip():
-            with st.spinner("Analiza bohaterów i rekwizytów..."):
-                try:
-                    prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle, safety_settings=safe_config).text)
-                    
-                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa, safety_settings=safe_config).text)
-                    
-                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}", safety_settings=safe_config).text
-                    m = re.search(r'\[.*\]', p_up, re.DOTALL)
-                    if m:
-                        for p in json.loads(m.group(0)):
-                            nm = p.get("imie", "NN")
-                            db.table("postacie_mikro").delete().eq("projekt_nazwa", active_p).eq("imie", nm).execute()
-                            db.table("postacie_mikro").insert({"projekt_nazwa": active_p, "imie": nm, "status_obecny": p.get("status_obecny", "Aktywny"), "sejf_glosu": p.get("sejf_glosu", "Standard")}).execute()
-                    
-                    st.success("Pamięć agentów zaktualizowana!")
-                    st.rerun()
-                except Exception as e: st.warning(f"Błąd analizy: {e}")
-        else: st.warning("Brak tekstu do analizy.")
-
-st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
-d1, d2, d3, d4 = st.columns(4)
-with d1:
-    if st.button("📖 BIBLIA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
-with d2:
-    if st.button("🪜 DRABINKA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
-with d3:
-    if st.button("🎯 MAPA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
-with d4:
-    if st.button("⚖️ DOKTRYNA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
-
-if txt_to_save:
-    st.divider()
-    c_d1, c_d2 = st.columns(2)
-    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
-    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
+                        "TRYB PRACY (KRYTYCZNE): Jesteśmy w writers' roomie. Rozmawiasz ze mną krok po kroku. ZAKAZ 'wyplu
