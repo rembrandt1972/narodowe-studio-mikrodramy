@@ -136,6 +136,7 @@ with st.sidebar:
                     
                     if st.button("💉 Wstrzyknij do czatu", use_container_width=True):
                         st.session_state.messages.append({"role": "user", "content": f"Oto przywrócony tekst z archiwum ({wybrany_plik}), pracujmy na nim dalej:\n\n{tresc_arch}"})
+                        save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                         st.rerun()
                         
                     st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
@@ -168,6 +169,7 @@ with st.sidebar:
                     if st.button("Wgraj do pamięci AI", use_container_width=True):
                         save_system_data(f"SYS_PLIK_{active_p}", raw_text)
                         st.session_state.messages.append({"role": "user", "content": f"Właśnie wgrałem do Twojej pamięci dokument: '{uploaded_file.name}'. Zapoznaj się z nim i powiedz w jednym zdaniu, czy jesteś gotowy do pracy."})
+                        save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                         st.rerun()
             except Exception as e: st.error(f"Błąd czytania: {e}")
 
@@ -220,15 +222,29 @@ with c_right:
 
 with c_left:
     st.markdown(f"## {agent}")
-    cl1, cl2, _ = st.columns([2, 2, 6])
+    
+    # Dodajemy trzeci przycisk do kolumn
+    cl1, cl2, cl3, _ = st.columns([2, 2, 2, 4])
     with cl1:
         if st.button("NOWY CZAT", use_container_width=True):
             st.session_state.messages = []
+            save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", "[]")
             st.rerun()
     with cl2:
         if st.button("COFNIJ", use_container_width=True):
-            if len(st.session_state.messages) >= 2: st.session_state.messages = st.session_state.messages[:-2]
+            if len(st.session_state.messages) >= 2: 
+                st.session_state.messages = st.session_state.messages[:-2]
+                save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
             st.rerun()
+    with cl3:
+        if st.button("PRZYWRÓĆ CZAT", use_container_width=True):
+            saved_chat = get_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}")
+            if saved_chat:
+                try:
+                    st.session_state.messages = json.loads(saved_chat)
+                    st.rerun()
+                except:
+                    st.warning("Błąd przywracania czatu.")
             
     st.divider()
     
@@ -237,6 +253,8 @@ with c_left:
         
     if prompt := st.chat_input("Napisz do agenta..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
+        # Autozapis po wpisaniu wiadomości przez użytkownika
+        save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
         st.rerun() 
         
     if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
@@ -336,6 +354,8 @@ with c_left:
                 try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
                     st.session_state.messages.append({"role": "assistant", "content": resp})
+                    # Autozapis po odpowiedzi AI
+                    save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                     st.rerun()
                 except Exception as e:
                     st.error(f"Błąd generacji AI: {e}")
@@ -356,6 +376,7 @@ txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250
 if st.button("💉 WSTRZYKNIJ TEN TEKST DO CZATU"):
     if txt_to_save.strip():
         st.session_state.messages.append({"role": "user", "content": f"Oto zaktualizowany tekst:\n\n{txt_to_save}"})
+        save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
         st.rerun()
 
 c1, c2 = st.columns(2)
