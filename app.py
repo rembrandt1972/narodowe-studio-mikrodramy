@@ -265,7 +265,7 @@ with c_left:
                 except:
                     st.warning("Błąd przywracania czatu.")
             else:
-                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'. Upewnij się, że poprawnie wybrałaś nazwę z listy po lewej stronie.")
+                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'.")
             
     st.divider()
     
@@ -274,7 +274,6 @@ with c_left:
         
     if prompt := st.chat_input("Napisz do agenta..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # Wymuszony twardy autozapis w bazie zaraz po wysłaniu
         save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
         st.rerun() 
         
@@ -292,7 +291,11 @@ with c_left:
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
+                
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
+                
+                # --- NAPRAWA BŁĘDU: Dodana brakująca zmienna akt_odc ---
+                akt_odc = st.session_state.active_file
                 
                 baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
@@ -389,7 +392,6 @@ with c_left:
                 try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
                     st.session_state.messages.append({"role": "assistant", "content": resp})
-                    # Twarde wywołanie zapisu natychmiast po wygenerowaniu odpowiedzi
                     save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                     st.rerun()
                 except Exception as e:
@@ -459,15 +461,19 @@ d1, d2, d3, d4 = st.columns(4)
 with d1:
     if st.button("📖 BIBLIA", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
+        else: st.warning("Okno podglądu jest puste!")
 with d2:
     if st.button("🪜 DRABINKA", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
+        else: st.warning("Okno podglądu jest puste!")
 with d3:
     if st.button("🎯 MAPA", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
+        else: st.warning("Okno podglądu jest puste!")
 with d4:
     if st.button("⚖️ DOKTRYNA", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
+        else: st.warning("Okno podglądu jest puste!")
 
 if txt_to_save:
     st.divider()
