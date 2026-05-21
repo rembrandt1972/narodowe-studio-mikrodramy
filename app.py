@@ -94,9 +94,9 @@ def get_season_arc(ep_str):
     except: return "Faza: Pilotażowa."
     if ep <= 10: return "Faza 1-10: Premise ignition (Haczyk startowy)."
     elif ep <= 30: return "Faza 11-30: Binge lock & Pierwszy wielki zwrot."
-    elif ep <= 50: return "Faza 31-50: Bohater przejmuje inicjatywę & Eksplozja w połowie."
-    elif ep <= 80: return "Faza 51-80: Mroczne sekrety & Upadek."
-    else: return "Faza 81+: Finałowe zderzenie & Payoff."
+    elif ep <= 50: return "Faza 31-50: Bohater przejął inicjatywę & Midpoint explosion."
+    elif ep <= 80: return "Faza 51-80: Deeper layer & Darkest stretch."
+    else: return "Faza 81+: Final collision & Payoff."
 
 def create_fdx(script_text):
     fdx_header = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<FinalDraft DocumentType="Script" Template="Standard Screenplay" Version="4">\n<Content>\n'
@@ -132,7 +132,6 @@ with st.sidebar:
         
     active_p = proj.strip()
     
-    # ULEPSZENIE: Dodani nowi agenci!
     agent = st.selectbox("Wybierz Agenta", [
         "Genesis PL", 
         "Plan Sezonu PL", 
@@ -266,7 +265,7 @@ with c_left:
                 except:
                     st.warning("Błąd przywracania czatu.")
             else:
-                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'.")
+                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'. Upewnij się, że poprawnie wybrałaś nazwę z listy po lewej stronie.")
             
     st.divider()
     
@@ -275,6 +274,7 @@ with c_left:
         
     if prompt := st.chat_input("Napisz do agenta..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
+        # Wymuszony twardy autozapis w bazie zaraz po wysłaniu
         save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
         st.rerun() 
         
@@ -292,10 +292,7 @@ with c_left:
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
-                
-                # ABSOLUTNA PAMIĘĆ
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
-                akt_odc = st.session_state.active_file
                 
                 baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
@@ -305,16 +302,16 @@ with c_left:
                     "=== KRYTYCZNA DOKTRYNA HOOK MAP ===\n"
                     "Każdy Agent MUSI stosować inżynierię zaangażowania widza. Każdy odcinek musi mieć 'hook energy'.\n\n"
                     "1. ANATOMIA ODCINKA (60-90 sekund):\n"
-                    "- 0-3 sek.: Opening hook / scroll-stopper (natychmiastowe uderzenie wizualne lub tekstowe).\n"
-                    "- 3-15 sek.: Immediate conflict (natychmiastowy konflikt).\n"
+                    "- 0-3 sek.: Opening hook / scroll-stopper.\n"
+                    "- 3-15 sek.: Immediate conflict.\n"
                     "- 15-35 sek.: Eskalacja napięcia.\n"
-                    "- 35-50 sek.: Twist, odwrócenie ról (reversal) lub cios emocjonalny.\n"
-                    "- 50-90 sek.: Ending cliffhook (zmusza do kliknięcia w kolejny odcinek).\n\n"
+                    "- 35-50 sek.: Twist, reversal lub cios emocjonalny.\n"
+                    "- 50-90 sek.: Ending cliffhook.\n\n"
                     "2. ARCHITEKTURA SEZONU (90 Odcinków):\n"
                     "- Odc. 1-10: Premise ignition. 11-20: Binge lock. 21-30: First major reversal. 31-40: Hero becomes active. 41-50: Midpoint explosion.\n"
                     "- Odc. 51-60: Deeper secret layer. 61-70: Darkest stretch. 71-80: Endgame setup. 81-89: Final collision. 90: Payoff + future hook.\n\n"
                     "3. ZASADY JAKOŚCI:\n"
-                    "- Używaj inteligentnych hooków: Revelation (Odkrycie), Threat (Groźba), Moral (Dylemat moralny), Status (Społeczna degradacja), Desire (Zakazane pożądanie).\n"
+                    "- Używaj inteligentnych hooków: Revelation, Threat, Moral, Status, Desire.\n"
                     "====================================================\n"
                 )
                 
@@ -353,40 +350,37 @@ with c_left:
                     sp = (
                         f"Jesteś Architektem Odcinka w Mikrodrama PL. ODCINEK: {akt_odc}.\n"
                         "TWOJE ZADANIE: Tworzysz precyzyjną DRABINKĘ (mapę bitów / step-outline) jednego, konkretnego odcinka.\n"
-                        "ROZBICIE: Rozbij historię na konkretne bity (0-3 sek, 3-15 sek, 15-35 sek, 35-50 sek, 50-90 sek). Pilnuj punktów zwrotnych.\n"
-                        "WSPÓŁPRACA: Masz przygotować plan tak czysty i perfekcyjny, by po przekazaniu go agentowi 'Odcinki PL', mógł on z łatwością napisać z tego gotowy scenariusz.\n"
+                        "ROZBICIE: Rozbij historię na bity (0-3 sek, 3-15 sek, 15-35 sek, 35-50 sek, 50-90 sek). Pilnuj punktów zwrotnych.\n"
+                        "WSPÓŁPRACA: Masz przygotować plan tak czysty, by po przekazaniu go agentowi 'Odcinki PL', mógł on napisać z tego gotowy scenariusz.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Odcinki PL":
                     sp = (
                         f"Jesteś Scenarzystą Wykonawczym Mikrodrama PL. ODCINEK: {akt_odc}.\n"
                         "TWOJA ROLA: Dostajesz 'mapę bitów' (drabinkę) od Planu Odcinka i zmieniasz ją w gotowy scenariusz.\n"
-                        "JĘZYK I STYL: Piszesz 100% po polsku. Skupiasz się na surowej akcji, interakcjach i wstępnych dialogach. Trzymasz się precyzyjnie limitów czasowych z drabinki.\n"
+                        "JĘZYK I STYL: Piszesz 100% po polsku. Skupiasz się na surowej akcji, interakcjach i wstępnych dialogach. Trzymasz się precyzyjnie limitów czasowych.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Dialogi PL":
                     sp = (
                         "Jesteś elitarnym Polskim Scenarzystą ds. Dialogów. Format pionowy (9:16), żywi aktorzy.\n"
                         "ZADANIE: Otrzymujesz surowy scenariusz i szlifujesz GŁOSY postaci. 100% po polsku.\n"
-                        "PODTEKST I EMOCJE: Polacy są mistrzami pasywnej agresji. Dodawaj podtekst. Przerywaj zdania (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ taniej ekspozycji.\n"
+                        "PODTEKST I EMOCJE: Pisz podtekstem. Przerywaj zdania (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ taniej ekspozycji.\n"
                         "WIZUALIA: Dbaj o didaskalia pod kamerę pionową – mikrowyrazy twarzy, drżące dłonie.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Edi PL":
                     sp = (
                         "Jesteś Edi, bezlitosny Redaktor Naczelny i 'Wykrywacz Cringe'u'.\n"
-                        "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli:\n"
-                        "1. Dialog brzmi jak z taniej telenoweli.\n"
-                        "2. Bohaterowie mówią o swoich uczuciach wprost zamiast to pokazać (Show, don't tell).\n"
-                        "3. Autor zaszalał z budżetem lub zapomniał o polskich realiach.\n"
+                        "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli: dialog brzmi sztucznie, bohaterowie mówią o uczuciach wprost, autor zapomniał o polskich realiach.\n"
                         "Okrutnie wytykaj błędy. Gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', podajesz sam bezbłędny, poprawiony scenariusz bez komentarza.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Cliffhanger PL":
                     sp = (
                         "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
-                        "TWOJA MISJA: Oceniasz tylko pierwsze 3 sekundy (Scroll-stopper) i ostatnie 5 sekund (Cliffhook).\n"
-                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę, jak podbić napięcie.\n"
+                        "TWOJA MISJA: Oceniasz tylko pierwsze 3 sekundy i ostatnie 5 sekund.\n"
+                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY].\n"
                         f"{baza_dna}"
                     )
                     
@@ -395,6 +389,7 @@ with c_left:
                 try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
                     st.session_state.messages.append({"role": "assistant", "content": resp})
+                    # Twarde wywołanie zapisu natychmiast po wygenerowaniu odpowiedzi
                     save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                     st.rerun()
                 except Exception as e:
