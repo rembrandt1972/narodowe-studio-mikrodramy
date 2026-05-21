@@ -94,7 +94,7 @@ def get_season_arc(ep_str):
     if ep <= 5: return "Haczyk: Budowanie fascynacji widza. Szybkie wprowadzenie konfliktów."
     elif ep <= 20: return "Rozwinięcie: Pierwsze sekrety, zdrady, nagłe zwroty akcji."
     elif ep <= 50: return "Chaos: Każdy odcinek to nowy problem, tempo maksymalne."
-    else: return "Endgame: Wielki finał sezonu i brutalny cliffhanger."
+    else: return "Endgame: Wielki finale sezonu i brutalny cliffhanger."
 
 def create_fdx(script_text):
     fdx_header = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<FinalDraft DocumentType="Script" Template="Standard Screenplay" Version="4">\n<Content>\n'
@@ -107,7 +107,6 @@ def create_fdx(script_text):
         elif clean_line.isupper() and len(clean_line) < 30 and not clean_line.startswith(("INT", "EXT")): p_type = "Character"
         elif "(" in clean_line and ")" in clean_line and len(clean_line) < 50: p_type = "Parenthetical"
         else: p_type = "Action" 
-        paragraphs += f'<Paragraph Type="{p_type}"><Text>{clean_line}</Text></Paragraph>\n'
     return fdx_header + paragraphs + fdx_footer
 
 # --- 5. INTERFEJS SIDEBAR ---
@@ -280,8 +279,6 @@ with c_left:
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
-                
-                # ULEPSZENIE: Przekazywanie CAŁEJ historii czatu, aby Genesis się nie gubił
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
                 
                 baza_dna = (
@@ -309,7 +306,7 @@ with c_left:
                     "- Odc. 81-89 (Final collision): Ostateczne zderzenie i spłata wszystkich obietnic (payoff). Ujawnienie prawdy.\n"
                     "- Odc. 90 (Payoff + future hook): Emocjonalne domknięcie wątków + nowy hook na przyszłość.\n\n"
                     "3. ZASADY JAKOŚCI I ANTY-POWTÓRZENIA:\n"
-                    "- Używaj inteligentnych, zróżnicowanych hooków: Revelation (Odkrycie np. 'Ona jest twoją córką'), Threat (Groźba), Moral (Dylemat moralny), Status (Społeczna degradacja), Desire (Zakazane pożądanie).\n"
+                    "- Używaj inteligentnych, zróżnicowanych hooków: Revelation (Odkrycie np. 'Ona jest ty córką'), Threat (Groźba), Moral (Dylemat moralny), Status (Społeczna degradacja), Desire (Zakazane pożądanie).\n"
                     "- Hooki mają być emocjonalne, ostre i mocno osadzone w psychologii postaci.\n"
                     "====================================================\n"
                 )
@@ -322,6 +319,21 @@ with c_left:
                         "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję, trudnych relacji.\n"
                         "TON I STYL: Konflikty w białych rękawiczkach. Rzecz dzieje się w POLSCE – to mogą być duże miasta, ale też bogate przedmieścia mniejszych miejscowości. ZAKAZ ograniczania się tylko do Warszawy! Ma być duszno od tajemnic, elegancko, ale mrocznie.\n"
                         "BOHATEROWIE: Nikt nie jest idealny. Każda postać musi mieć ukryty motyw. Twórz gęstą siatkę relacji.\n"
+                        "\n=== ŚCISŁY STANDARD STRUKTURY BIBLII SERIALU ===\n"
+                        "Kiedy użytkownik poprosi Cię o stworzenie Biblii projektu (show bible), MUSISZ bezwzględnie wygenerować dokument zawierający następujące sekcje:\n"
+                        "1. FUNDAMENTY PROJEKTU\n"
+                        "   - Logline: Streszczenie całego serialu w jednym lub dwóch zdaniach.\n"
+                        "   - Format: Długość odcinka (pionowy 60-90s), gatunek, grupa docelowa.\n"
+                        "   - Teaser: Krótki, klimatyczny opis otwierający wprowadzający w nastrój i ton.\n"
+                        "2. ŚWIAT I BOHATEROWIE\n"
+                        "   - Świat przedstawiony: Opis realiów, zasad i miejsc akcji (polskie realia!).\n"
+                        "   - Profile postaci: Psychologia, głębokie motywacje, mroczne sekrety i Relational Web (siatka relacji).\n"
+                        "   - Ton i styl: Oprawa wizualna, tempo akcji pod format pionowy.\n"
+                        "3. FABUŁA I STRUKTURA\n"
+                        "   - Streszczenie sezonu: Główny wątek dramaturgiczny prozą (ZAKAZ pisania w punktach!).\n"
+                        "   - Opisy odcinków: Krótkie synopsisy pierwszych kilku epizodów (z jasnym zaznaczeniem Opening Hook i Ending Cliffhanger).\n"
+                        "   - Potencjał na kolejne sezony: Zarys rozwoju historii w przyszłości.\n"
+                        "================================================\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Plan Sezonu PL":
@@ -332,7 +344,7 @@ with c_left:
                         "Lokacje muszą być tanie w produkcji, ale efektowne emocjonalnie i typowo polskie (nowoczesny dom pod lasem, wnętrze drogiego SUV-a, zaplecze lokalnego butiku, gabinet notariusza, stół podczas rodzinnego obiadu).\n"
                         "ZASADA DYNAMIKI: Każdy odcinek musi pchać fabułę do przodu i nieodwracalnie zmieniać status quo. ZAKAZ fillerów. "
                         "Zawsze podawaj, co jest Opening Hookiem, a co Ending Cliffhookiem w danym odcinku.\n"
-                        f"{baza_dna}\nOtwarte Pętle: {o_loops}"
+                        f"{baza_dna}"
                     )
                 elif agent == "Dialogi PL":
                     sp = (
@@ -360,7 +372,7 @@ with c_left:
                         f"{baza_dna}"
                     )
                     
-                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
+                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkoľwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
                 
                 try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
@@ -410,7 +422,7 @@ with c2:
                     prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
                     save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle, safety_settings=safe_config).text)
                     
-                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
+                    prompt_szafa = f"Wypisz w punktach kto w co is ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
                     save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa, safety_settings=safe_config).text)
                     
                     p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}", safety_settings=safe_config).text
