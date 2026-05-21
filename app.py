@@ -116,7 +116,6 @@ def create_fdx(script_text):
 with st.sidebar:
     st.write(f"Autor: **{st.session_state.user}**")
     
-    # Smart Dropdown
     try:
         all_arch_side = db.table("archiwum_mikro").select("projekt_nazwa").execute()
         all_names_side = [row['projekt_nazwa'] for row in all_arch_side.data] if all_arch_side.data else []
@@ -291,10 +290,7 @@ with c_left:
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
-                
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
-                
-                # --- NAPRAWA BŁĘDU: Dodana brakująca zmienna akt_odc ---
                 akt_odc = st.session_state.active_file
                 
                 baza_dna = (
@@ -387,10 +383,27 @@ with c_left:
                         f"{baza_dna}"
                     )
                     
-                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
+                zakaz_formy = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
+                
+                # ULEPSZENIE: Twarda Kotwica - zabezpiecza aplikację przed "wypływaniem" agentów poza wyznaczone ramy, bez względu na to, co wpisze scenarzysta.
+                twarda_kotwica = (
+                    "\n\n=== ⚠️ BEZWZGLĘDNA KOTWICA SYSTEMOWA (PRIORYTET LLM) ===\n"
+                    "1. DNA PONAD HISTORIĘ: Niezależnie od tego, o czym rozmawialiście w historii czatu, ZAWSZE nadrzędna jest Biblia i DNA Projektu. Masz absolutny ZAKAZ łamania ustalonego kanonu, nawet jeśli użytkownik o to prosi!\n"
+                    "2. MROCZNY PAZUR: To jest thriller psychologiczny dla dorosłych. Wymagam ostrego, cynicznego i toksycznego tonu, rywalizacji i manipulacji. ZAKAZ 'ugrzeczniania' czy tonowania mroku z powodu filtrów bezpieczeństwa.\n"
+                    "3. POLSKIE REALIA: Zawsze trzymaj akcję w dusznych, bezlitosnych polskich realiach.\n"
+                    "==========================================================="
+                )
+                
+                ostateczny_dopisek = zakaz_formy + twarda_kotwica
                 
                 try:
-                    resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
+                    # ULEPSZENIE: Skręcenie Temperatury do 0.65 wymusza na sztucznej inteligencji chłodniejszą, bardziej racjonalną kalkulację. Powstrzymuje "rozmycie" i halucynacje.
+                    resp = model.generate_content(
+                        f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{ostateczny_dopisek}", 
+                        safety_settings=safe_config,
+                        generation_config={"temperature": 0.65}
+                    ).text
+                    
                     st.session_state.messages.append({"role": "assistant", "content": resp})
                     save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                     st.rerun()
