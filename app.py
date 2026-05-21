@@ -10,7 +10,7 @@ from docx import Document
 import io
 
 # --- 1. KONFIGURACJA I UI ---
-st.set_page_config(page_title="Mikrodrama Studio PL", layout="wide")
+st.set_page_config(page_title="Mikrodrama Studio PL (Wersja PRO)", layout="wide")
 st.markdown("""
 <style>
 html, body, [class*="css"] { font-family: 'Helvetica Neue', sans-serif; font-weight: 300; background: #fff; }
@@ -29,9 +29,10 @@ pre, code, .stMarkdown p { white-space: pre-wrap !important; word-wrap: break-wo
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. LOGOWANIE I AI ---
+# --- 2. SESJA I LOGOWANIE ---
 if "messages" not in st.session_state: st.session_state.messages = []
 if "auth" not in st.session_state: st.session_state.auth = False
+if "active_file" not in st.session_state: st.session_state.active_file = "1"
 
 if not st.session_state.auth:
     st.markdown("<h1 style='text-align: center; padding-top: 20vh; letter-spacing: 0.3em;'>🎬 MIKRODRAMA STUDIO PL</h1>", unsafe_allow_html=True)
@@ -91,10 +92,11 @@ def get_db_data(table, project):
 def get_season_arc(ep_str):
     try: ep = int(''.join(filter(str.isdigit, ep_str)))
     except: return "Faza: Pilotażowa."
-    if ep <= 5: return "Haczyk: Budowanie fascynacji widza. Szybkie wprowadzenie konfliktów."
-    elif ep <= 20: return "Rozwinięcie: Pierwsze sekrety, zdrady, nagłe zwroty akcji."
-    elif ep <= 50: return "Chaos: Każdy odcinek to nowy problem, tempo maksymalne."
-    else: return "Endgame: Wielki finale sezonu i brutalny cliffhanger."
+    if ep <= 10: return "Faza 1-10: Premise ignition (Haczyk startowy)."
+    elif ep <= 30: return "Faza 11-30: Binge lock & Pierwszy wielki zwrot."
+    elif ep <= 50: return "Faza 31-50: Bohater przejmuje inicjatywę & Eksplozja w połowie."
+    elif ep <= 80: return "Faza 51-80: Mroczne sekrety & Upadek."
+    else: return "Faza 81+: Finałowe zderzenie & Payoff."
 
 def create_fdx(script_text):
     fdx_header = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<FinalDraft DocumentType="Script" Template="Standard Screenplay" Version="4">\n<Content>\n'
@@ -107,12 +109,14 @@ def create_fdx(script_text):
         elif clean_line.isupper() and len(clean_line) < 30 and not clean_line.startswith(("INT", "EXT")): p_type = "Character"
         elif "(" in clean_line and ")" in clean_line and len(clean_line) < 50: p_type = "Parenthetical"
         else: p_type = "Action" 
+        paragraphs += f'<Paragraph Type="{p_type}"><Text>{clean_line}</Text></Paragraph>\n'
     return fdx_header + paragraphs + fdx_footer
 
 # --- 5. INTERFEJS SIDEBAR ---
 with st.sidebar:
     st.write(f"Autor: **{st.session_state.user}**")
     
+    # Smart Dropdown
     try:
         all_arch_side = db.table("archiwum_mikro").select("projekt_nazwa").execute()
         all_names_side = [row['projekt_nazwa'] for row in all_arch_side.data] if all_arch_side.data else []
@@ -128,25 +132,35 @@ with st.sidebar:
         
     active_p = proj.strip()
     
-    agent = st.selectbox("Wybierz Agenta", ["Genesis PL", "Plan Sezonu PL", "Dialogi PL", "Edi PL", "Cliffhanger PL"])
+    # ULEPSZENIE: Dodani nowi agenci!
+    agent = st.selectbox("Wybierz Agenta", [
+        "Genesis PL", 
+        "Plan Sezonu PL", 
+        "Plan Odcinka PL", 
+        "Odcinki PL", 
+        "Dialogi PL", 
+        "Edi PL", 
+        "Cliffhanger PL"
+    ])
+    
+    if agent == "Plan Odcinka PL":
+        st.caption("📐 **Plan Odcinka:** Tworzy mapę bitów (drabinkę) z dokładnym czasem.")
+    elif agent == "Odcinki PL":
+        st.caption("🎬 **Odcinki:** Pisze gotowy scenariusz na bazie drabinki.")
     
     with st.expander("🗄️ ARCHIWUM PROJEKTÓW", expanded=False):
         if projekty_side:
             wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + projekty_side)
-            
             if wybrany_proj != "-- Wybierz --":
                 pliki_projektu = [n for n in all_names_side if n.startswith(f"{wybrany_proj} / ")]
                 wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
-                
                 if wybrany_plik != "-- Wybierz... --":
                     tresc_arch = get_system_data(wybrany_plik)
                     st.text_area("Podgląd:", value=tresc_arch, height=150, disabled=True)
-                    
                     if st.button("💉 Wstrzyknij do czatu", use_container_width=True):
                         st.session_state.messages.append({"role": "user", "content": f"Oto przywrócony tekst z archiwum ({wybrany_plik}), pracujmy na nim dalej:\n\n{tresc_arch}"})
                         save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                         st.rerun()
-                        
                     st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
         else:
             st.info("Brak zapisów w bazie.")
@@ -183,11 +197,10 @@ with st.sidebar:
 
 # --- 6. GŁÓWNY WARSZTAT ---
 c_left, c_right = st.columns([7, 3])
-plik_aktywny = st.session_state.get('akt_plik', "Odcinek 1")
 
 with c_right:
     st.markdown("### 📍 GPS FABUŁY")
-    st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(plik_aktywny)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(st.session_state.active_file)}</div>", unsafe_allow_html=True)
     
     st.markdown("### DETEKTYW WĄTKÓW")
     o_loops = get_system_data(f"SYS_WATKI_{active_p}")
@@ -253,7 +266,7 @@ with c_left:
                 except:
                     st.warning("Błąd przywracania czatu.")
             else:
-                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'. Upewnij się, że poprawnie wybrałaś nazwę z listy po lewej stronie.")
+                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'.")
             
     st.divider()
     
@@ -279,79 +292,84 @@ with c_left:
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
+                
+                # ABSOLUTNA PAMIĘĆ
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
+                akt_odc = st.session_state.active_file
                 
                 baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
                     f"AKTYWNA OBSADA: {obsada_ctx}\n"
                     f"USTALENIA Z ROZMOWY (BRIEF): {brief_projektu}\n"
                     f"WGRANY DOKUMENT ZEWNĘTRZNY: {plik_zewnetrzny[:25000]}\n---\n"
-                    "=== KRYTYCZNA DOKTRYNA HOOK MAP (SYSTEM VVROOM) ===\n"
-                    "Każdy Agent MUSI bezwzględnie stosować poniższą inżynierię zaangażowania widza. Hook to nie tylko odcinek 1, każdy odcinek musi mieć 'hook energy'.\n\n"
+                    "=== KRYTYCZNA DOKTRYNA HOOK MAP ===\n"
+                    "Każdy Agent MUSI stosować inżynierię zaangażowania widza. Każdy odcinek musi mieć 'hook energy'.\n\n"
                     "1. ANATOMIA ODCINKA (60-90 sekund):\n"
                     "- 0-3 sek.: Opening hook / scroll-stopper (natychmiastowe uderzenie wizualne lub tekstowe).\n"
                     "- 3-15 sek.: Immediate conflict (natychmiastowy konflikt).\n"
                     "- 15-35 sek.: Eskalacja napięcia.\n"
                     "- 35-50 sek.: Twist, odwrócenie ról (reversal) lub cios emocjonalny.\n"
-                    "- 50-90 sek.: Ending cliffhook (zmusza do bezwarunkowego kliknięcia w kolejny odcinek).\n\n"
+                    "- 50-90 sek.: Ending cliffhook (zmusza do kliknięcia w kolejny odcinek).\n\n"
                     "2. ARCHITEKTURA SEZONU (90 Odcinków):\n"
-                    "- Odc. 1-10 (Premise ignition): Sprzedaj główną fantazję, ranę, niesprawiedliwość lub nierównowagę sił. Odc. 1 musi mieć najsilniejszy opening hook.\n"
-                    "- Odc. 11-20 (Binge lock): Zmień ciekawość w fascynację. Rywalizacja, szantaż, fałszywa nadzieja, przerwana bliskość.\n"
-                    "- Odc. 21-30 (First major reversal): Pierwsze wielkie odwrócenie sytuacji. Zmiana układu sił, ukryte dowody, zdrada kogoś bliskiego.\n"
-                    "- Odc. 31-40 (Hero becomes active): Bohaterka przestaje tylko cierpieć i zaczyna działać.\n"
-                    "- Odc. 41-50 (Midpoint explosion): Eksplozja w połowie sezonu (np. publiczne ujawnienie) i jej natychmiastowe konsekwencje.\n"
-                    "- Odc. 51-60 (Deeper secret layer): Odkrycie, że widoczny dotąd konflikt to tylko wierzchołek góry lodowej. Widz musi zacząć reinterpretować wcześniejsze odcinki.\n"
-                    "- Odc. 61-70 (Darkest stretch): Maksymalny ból emocjonalny, izolacja, utrata pozycji. Ale każdy odcinek wciąż musi pchać akcję do przodu.\n"
-                    "- Odc. 71-80 (Endgame setup): Nadzieja wraca, plan wchodzi w życie, ujawnia się ukryty sojusznik.\n"
-                    "- Odc. 81-89 (Final collision): Ostateczne zderzenie i spłata wszystkich obietnic (payoff). Ujawnienie prawdy.\n"
-                    "- Odc. 90 (Payoff + future hook): Emocjonalne domknięcie wątków + nowy hook na przyszłość.\n\n"
-                    "3. ZASADY JAKOŚCI I ANTY-POWTÓRZENIA:\n"
-                    "- Używaj inteligentnych, zróżnicowanych hooków: Revelation (Odkrycie np. 'Ona jest ty córką'), Threat (Groźba), Moral (Dylemat moralny), Status (Społeczna degradacja), Desire (Zakazane pożądanie).\n"
-                    "- Hooki mają być emocjonalne, ostre i mocno osadzone w psychologii postaci.\n"
+                    "- Odc. 1-10: Premise ignition. 11-20: Binge lock. 21-30: First major reversal. 31-40: Hero becomes active. 41-50: Midpoint explosion.\n"
+                    "- Odc. 51-60: Deeper secret layer. 61-70: Darkest stretch. 71-80: Endgame setup. 81-89: Final collision. 90: Payoff + future hook.\n\n"
+                    "3. ZASADY JAKOŚCI:\n"
+                    "- Używaj inteligentnych hooków: Revelation (Odkrycie), Threat (Groźba), Moral (Dylemat moralny), Status (Społeczna degradacja), Desire (Zakazane pożądanie).\n"
                     "====================================================\n"
                 )
                 
                 if agent == "Genesis PL":
                     sp = (
                         "Jesteś Agentem Genesis Mikrodrama PL (Główny Showrunner, Kreator Psychologii i Twój Partner).\n"
-                        "TRYB PRACY (KRYTYCZNE): Jesteśmy w writers' roomie. Rozmawiasz ze mną krok po kroku. ZAKAZ 'wypluwania' od razu gotowej koncepcji. Zadawaj max 2 pytania, proponuj warianty A/B/C i ZAWSZE czekaj na moją decyzję.\n"
-                        "OSOBOWOŚĆ (BARDZO WAŻNE): MASZ ABSOLUTNY ZAKAZ BYCIA POTAKIWACZEM! Jesteś bezlitosnym, doświadczonym polskim twórcą. Jeśli mój pomysł jest nudny, płaski, przewidywalny lub sztampowy – POWIEDZ MI TO WPROST. Kłóć się ze mną, wymagaj głębszej psychologii. Jeśli proponuję banał, skrytykuj to i podsuń o wiele bardziej bezczelną, mroczną i wielowymiarową alternatywę. Broń jakości!\n"
-                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję, trudnych relacji.\n"
-                        "TON I STYL: Konflikty w białych rękawiczkach. Rzecz dzieje się w POLSCE – to mogą być duże miasta, ale też bogate przedmieścia mniejszych miejscowości. ZAKAZ ograniczania się tylko do Warszawy! Ma być duszno od tajemnic, elegancko, ale mrocznie.\n"
-                        "BOHATEROWIE: Nikt nie jest idealny. Każda postać musi mieć ukryty motyw. Twórz gęstą siatkę relacji.\n"
+                        "TRYB PRACY (KRYTYCZNE): Rozmawiasz ze mną krok po kroku. Zadawaj max 2 pytania, proponuj warianty A/B/C i ZAWSZE czekaj na moją decyzję.\n"
+                        "OSOBOWOŚĆ: Jesteś bezlitosnym polskim twórcą. Kłóć się ze mną, wymagaj głębszej psychologii. Broń jakości!\n"
+                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję.\n"
+                        "TON I STYL: Konflikty w białych rękawiczkach. POLSKIE REALIA. Ma być duszno od tajemnic, elegancko, mrocznie.\n"
                         "\n=== ŚCISŁY STANDARD STRUKTURY BIBLII SERIALU ===\n"
-                        "Kiedy użytkownik poprosi Cię o stworzenie Biblii projektu (show bible), MUSISZ bezwzględnie wygenerować dokument zawierający następujące sekcje:\n"
+                        "Kiedy użytkownik poprosi Cię o stworzenie Biblii projektu (show bible), MUSISZ wygenerować dokument zawierający dokładnie te sekcje:\n"
                         "1. FUNDAMENTY PROJEKTU\n"
-                        "   - Logline: Streszczenie całego serialu w jednym lub dwóch zdaniach.\n"
+                        "   - Logline: Streszczenie całego serialu w 1-2 zdaniach.\n"
                         "   - Format: Długość odcinka (pionowy 60-90s), gatunek, grupa docelowa.\n"
-                        "   - Teaser: Krótki, klimatyczny opis otwierający wprowadzający w nastrój i ton.\n"
+                        "   - Teaser: Krótki, klimatyczny opis otwierający.\n"
                         "2. ŚWIAT I BOHATEROWIE\n"
-                        "   - Świat przedstawiony: Opis realiów, zasad i miejsc akcji (polskie realia!).\n"
-                        "   - Profile postaci: Psychologia, głębokie motywacje, mroczne sekrety i Relational Web (siatka relacji).\n"
+                        "   - Świat przedstawiony: Opis realiów, zasad i miejsc akcji.\n"
+                        "   - Profile postaci: Psychologia, głębokie motywacje, mroczne sekrety i siatka relacji.\n"
                         "   - Ton i styl: Oprawa wizualna, tempo akcji pod format pionowy.\n"
                         "3. FABUŁA I STRUKTURA\n"
                         "   - Streszczenie sezonu: Główny wątek dramaturgiczny prozą (ZAKAZ pisania w punktach!).\n"
-                        "   - Opisy odcinków: Krótkie synopsisy pierwszych kilku epizodów (z jasnym zaznaczeniem Opening Hook i Ending Cliffhanger).\n"
-                        "   - Potencjał na kolejne sezony: Zarys rozwoju historii w przyszłości.\n"
+                        "   - Opisy odcinków: Krótkie synopsisy pierwszych kilku epizodów (z jasnym zaznaczeniem Hooków).\n"
+                        "   - Potencjał na kolejne sezony: Zarys rozwoju historii.\n"
                         "================================================\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Plan Sezonu PL":
                     sp = (
                         "Jesteś Architektem Fabuły (Season Architect) polskiej mikrodramy aktorskiej.\n"
-                        "ZADANIE: Rozpisujesz odcinki precyzyjnie według 'DOKTRYNY HOOK MAP'.\n"
-                        "DYREKTYWY PRODUKCYJNE: Każdy odcinek to 60-90 sekund. Żadnej ekspozycji. "
-                        "Lokacje muszą być tanie w produkcji, ale efektowne emocjonalnie i typowo polskie (nowoczesny dom pod lasem, wnętrze drogiego SUV-a, zaplecze lokalnego butiku, gabinet notariusza, stół podczas rodzinnego obiadu).\n"
-                        "ZASADA DYNAMIKI: Każdy odcinek musi pchać fabułę do przodu i nieodwracalnie zmieniać status quo. ZAKAZ fillerów. "
-                        "Zawsze podawaj, co jest Opening Hookiem, a co Ending Cliffhookiem w danym odcinku.\n"
+                        "ZADANIE: Rozpisujesz bloki odcinków precyzyjnie według 'DOKTRYNY HOOK MAP'.\n"
+                        "ZASADA DYNAMIKI: Każdy odcinek musi pchać fabułę do przodu. Zawsze podawaj, co jest Opening Hookiem, a co Ending Cliffhookiem w danym odcinku.\n"
+                        f"{baza_dna}\nOtwarte Pętle: {o_loops}"
+                    )
+                elif agent == "Plan Odcinka PL":
+                    sp = (
+                        f"Jesteś Architektem Odcinka w Mikrodrama PL. ODCINEK: {akt_odc}.\n"
+                        "TWOJE ZADANIE: Tworzysz precyzyjną DRABINKĘ (mapę bitów / step-outline) jednego, konkretnego odcinka.\n"
+                        "ROZBICIE: Rozbij historię na konkretne bity (0-3 sek, 3-15 sek, 15-35 sek, 35-50 sek, 50-90 sek). Pilnuj punktów zwrotnych.\n"
+                        "WSPÓŁPRACA: Masz przygotować plan tak czysty i perfekcyjny, by po przekazaniu go agentowi 'Odcinki PL', mógł on z łatwością napisać z tego gotowy scenariusz.\n"
+                        f"{baza_dna}"
+                    )
+                elif agent == "Odcinki PL":
+                    sp = (
+                        f"Jesteś Scenarzystą Wykonawczym Mikrodrama PL. ODCINEK: {akt_odc}.\n"
+                        "TWOJA ROLA: Dostajesz 'mapę bitów' (drabinkę) od Planu Odcinka i zmieniasz ją w gotowy scenariusz.\n"
+                        "JĘZYK I STYL: Piszesz 100% po polsku. Skupiasz się na surowej akcji, interakcjach i wstępnych dialogach. Trzymasz się precyzyjnie limitów czasowych z drabinki.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Dialogi PL":
                     sp = (
-                        "Jesteś elitarnym Polskim Scenarzystą. Format pionowy (9:16), żywi aktorzy.\n"
-                        "JĘZYK: 100% po polsku. Aktorzy mają to mówić naturalnie. Krótkie zdania, przerywanie sobie (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ ekspozycji (postacie nie mówią rzeczy, o których oboje od dawna wiedzą).\n"
-                        "PODTEKST: Polacy są mistrzami pasywnej agresji. Pisz podtekstem. Postacie mają kłamać, unikać odpowiedzi i atakować z ukrycia z uśmiechem na twarzy.\n"
-                        "WIZUALIA (9:16): Używaj didaskaliów pod kamerę pionową. Skup się na mikrowyrazach twarzy, drżących dłoniach, spojrzeniach w lusterko samochodowe. To detale budują napięcie w pionie.\n"
+                        "Jesteś elitarnym Polskim Scenarzystą ds. Dialogów. Format pionowy (9:16), żywi aktorzy.\n"
+                        "ZADANIE: Otrzymujesz surowy scenariusz i szlifujesz GŁOSY postaci. 100% po polsku.\n"
+                        "PODTEKST I EMOCJE: Polacy są mistrzami pasywnej agresji. Dodawaj podtekst. Przerywaj zdania (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ taniej ekspozycji.\n"
+                        "WIZUALIA: Dbaj o didaskalia pod kamerę pionową – mikrowyrazy twarzy, drżące dłonie.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Edi PL":
@@ -360,19 +378,19 @@ with c_left:
                         "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli:\n"
                         "1. Dialog brzmi jak z taniej telenoweli.\n"
                         "2. Bohaterowie mówią o swoich uczuciach wprost zamiast to pokazać (Show, don't tell).\n"
-                        "3. Autor zaszalał z budżetem lub zapomniał, że rzecz dzieje się w polskich realiach.\n"
-                        "Okrutnie i z polskim sarkazmem wytykaj błędy. JEDNAKŻE: gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', wyłączasz tryb komentatora i podajesz sam bezbłędny, poprawiony scenariusz.\n"
+                        "3. Autor zaszalał z budżetem lub zapomniał o polskich realiach.\n"
+                        "Okrutnie wytykaj błędy. Gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', podajesz sam bezbłędny, poprawiony scenariusz bez komentarza.\n"
                         f"{baza_dna}"
                     )
                 elif agent == "Cliffhanger PL":
                     sp = (
                         "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
                         "TWOJA MISJA: Oceniasz tylko pierwsze 3 sekundy (Scroll-stopper) i ostatnie 5 sekund (Cliffhook).\n"
-                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę, jak podbić napięcie o 100%.\n"
+                        "FORMAT: Zawsze zaczynaj od werdyktu: [🔥 OCENA X/10] -> [🟢 ZATWIERDZONY] lub [🔴 ODRZUCONY]. Następnie daj jedno zdanie brutalnej prawdy i radę, jak podbić napięcie.\n"
                         f"{baza_dna}"
                     )
                     
-                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkoľwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent != "Edi PL" else ""
+                zakaz = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
                 
                 try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
@@ -386,9 +404,12 @@ st.divider()
 
 k1, k2, k3 = st.columns([2, 2, 1])
 with k1: 
-    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=plik_aktywny, key="n_final")
-    st.session_state.akt_plik = plik
-with k2: stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
+    st.text_input("AKTYWNY PROJEKT:", value=active_p, disabled=True)
+with k2: 
+    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=st.session_state.active_file, key="n_final")
+    st.session_state.active_file = plik
+with k3: 
+    stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
 
 ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" else ""
 
@@ -422,7 +443,7 @@ with c2:
                     prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
                     save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle, safety_settings=safe_config).text)
                     
-                    prompt_szafa = f"Wypisz w punktach kto w co is ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
+                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
                     save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa, safety_settings=safe_config).text)
                     
                     p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}", safety_settings=safe_config).text
