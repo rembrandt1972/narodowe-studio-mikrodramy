@@ -45,7 +45,7 @@ if not st.session_state.auth:
             else: st.error("Brak dostępu.")
     st.stop()
 
-# Konfiguracja Gemini (PRZYWRÓCONY 3.1 Z WYŁĄCZONĄ CENZURĄ)
+# Konfiguracja Gemini
 try:
     user_now = st.session_state.user.upper()
     genai.configure(api_key=st.secrets[f"GEMINI_{user_now}"])
@@ -113,21 +113,30 @@ def create_fdx(script_text):
 # --- 5. INTERFEJS SIDEBAR ---
 with st.sidebar:
     st.write(f"Autor: **{st.session_state.user}**")
-    proj = st.text_input("Nazwa Projektu:", "Mój Projekt")
+    
+    try:
+        all_arch_side = db.table("archiwum_mikro").select("projekt_nazwa").execute()
+        all_names_side = [row['projekt_nazwa'] for row in all_arch_side.data] if all_arch_side.data else []
+        projekty_side = sorted(list(set([n.split(" / ")[0] for n in all_names_side if " / " in n])))
+    except:
+        projekty_side = []
+
+    wyb_proj = st.selectbox("Nazwa Projektu:", ["-- Nowy Projekt --"] + projekty_side)
+    if wyb_proj == "-- Nowy Projekt --":
+        proj = st.text_input("Wpisz nazwę nowego projektu:", "Mój Projekt")
+    else:
+        proj = wyb_proj
+        
     active_p = proj.strip()
     
     agent = st.selectbox("Wybierz Agenta", ["Genesis PL", "Plan Sezonu PL", "Dialogi PL", "Edi PL", "Cliffhanger PL"])
     
     with st.expander("🗄️ ARCHIWUM PROJEKTÓW", expanded=False):
-        try:
-            all_arch = db.table("archiwum_mikro").select("projekt_nazwa").execute()
-            all_names = [row['projekt_nazwa'] for row in all_arch.data] if all_arch.data else []
-            unikalne_projekty = sorted(list(set([n.split(" / ")[0] for n in all_names if " / " in n])))
-            
-            wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + unikalne_projekty)
+        if projekty_side:
+            wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + projekty_side)
             
             if wybrany_proj != "-- Wybierz --":
-                pliki_projektu = [n for n in all_names if n.startswith(f"{wybrany_proj} / ")]
+                pliki_projektu = [n for n in all_names_side if n.startswith(f"{wybrany_proj} / ")]
                 wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
                 
                 if wybrany_plik != "-- Wybierz... --":
@@ -140,7 +149,7 @@ with st.sidebar:
                         st.rerun()
                         
                     st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
-        except:
+        else:
             st.info("Brak zapisów w bazie.")
             
     st.divider()
@@ -223,7 +232,6 @@ with c_right:
 with c_left:
     st.markdown(f"## {agent}")
     
-    # Dodajemy trzeci przycisk do kolumn
     cl1, cl2, cl3, _ = st.columns([2, 2, 2, 4])
     with cl1:
         if st.button("NOWY CZAT", use_container_width=True):
@@ -239,12 +247,14 @@ with c_left:
     with cl3:
         if st.button("PRZYWRÓĆ CZAT", use_container_width=True):
             saved_chat = get_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}")
-            if saved_chat:
+            if saved_chat and saved_chat != "[]":
                 try:
                     st.session_state.messages = json.loads(saved_chat)
                     st.rerun()
                 except:
                     st.warning("Błąd przywracania czatu.")
+            else:
+                st.warning(f"Brak zapisanego czatu dla projektu: '{active_p}'. Upewnij się, że poprawnie wybrałaś nazwę z listy po lewej stronie.")
             
     st.divider()
     
@@ -253,7 +263,6 @@ with c_left:
         
     if prompt := st.chat_input("Napisz do agenta..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # Autozapis po wpisaniu wiadomości przez użytkownika
         save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
         st.rerun() 
         
@@ -271,7 +280,9 @@ with c_left:
                 obsada_ctx = ", ".join([f"{p['imie']} (Status: {p['status_obecny']}, Głos: {p.get('sejf_glosu', 'Standard')})" for p in p_data_ai]) if p_data_ai else "Brak zdefiniowanych postaci w bazie."
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
-                hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-11:-1]])
+                
+                # ULEPSZENIE: Przekazywanie CAŁEJ historii czatu, aby Genesis się nie gubił
+                hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
                 
                 baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
@@ -354,7 +365,6 @@ with c_left:
                 try:
                     resp = model.generate_content(f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{zakaz}", safety_settings=safe_config).text
                     st.session_state.messages.append({"role": "assistant", "content": resp})
-                    # Autozapis po odpowiedzi AI
                     save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                     st.rerun()
                 except Exception as e:
