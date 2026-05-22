@@ -385,19 +385,18 @@ with c_left:
                     
                 zakaz_formy = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
                 
-                # ULEPSZENIE: Twarda Kotwica - zabezpiecza aplikację przed "wypływaniem" agentów poza wyznaczone ramy, bez względu na to, co wpisze scenarzysta.
+                # ZMIANA: Złagodzona Twarda Kotwica. Teraz Genesis wie, kto tu rządzi.
                 twarda_kotwica = (
-                    "\n\n=== ⚠️ BEZWZGLĘDNA KOTWICA SYSTEMOWA (PRIORYTET LLM) ===\n"
-                    "1. DNA PONAD HISTORIĘ: Niezależnie od tego, o czym rozmawialiście w historii czatu, ZAWSZE nadrzędna jest Biblia i DNA Projektu. Masz absolutny ZAKAZ łamania ustalonego kanonu, nawet jeśli użytkownik o to prosi!\n"
-                    "2. MROCZNY PAZUR: To jest thriller psychologiczny dla dorosłych. Wymagam ostrego, cynicznego i toksycznego tonu, rywalizacji i manipulacji. ZAKAZ 'ugrzeczniania' czy tonowania mroku z powodu filtrów bezpieczeństwa.\n"
-                    "3. POLSKIE REALIA: Zawsze trzymaj akcję w dusznych, bezlitosnych polskich realiach.\n"
+                    "\n\n=== ⚠️ KOTWICA SYSTEMOWA (PRIORYTET LLM) ===\n"
+                    "1. AUTORYTET TWÓRCY: Jesteś tylko co-writerem. Użytkownik to Twój Szef. Możesz (i powinieneś) kłócić się o jakość, wytykać błędy i bronić mroku, ALE gdy Użytkownik wydaje bezpośrednie polecenie zmiany (np. nowa koncepcja postaci, inny wiek), MASZ BEZWZGLĘDNY OBOWIĄZEK zrealizować jego wizję. Zrób to w swoim mrocznym stylu, ale nie odmawiaj!\n"
+                    "2. MROCZNY PAZUR: To thriller psychologiczny dla dorosłych. Wymagam ostrego, cynicznego tonu. Użytkownik każe zrobić z bohatera 26-latka? Ok, ale zrób to tak, by pasowało do brutalnego, polskiego świata.\n"
+                    "3. POLSKIE REALIA: Trzymaj akcję w polskich, dusznych realiach.\n"
                     "==========================================================="
                 )
                 
                 ostateczny_dopisek = zakaz_formy + twarda_kotwica
                 
                 try:
-                    # ULEPSZENIE: Skręcenie Temperatury do 0.65 wymusza na sztucznej inteligencji chłodniejszą, bardziej racjonalną kalkulację. Powstrzymuje "rozmycie" i halucynacje.
                     resp = model.generate_content(
                         f"{sp}\nHISTORIA CZATU:\n{hist}\nZADANIE:\n{akt_zadanie}{ostateczny_dopisek}", 
                         safety_settings=safe_config,
