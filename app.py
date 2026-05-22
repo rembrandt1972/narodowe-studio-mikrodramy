@@ -1,3 +1,16 @@
+Rozumiem Twoją frustrację. Patrząc na ten zrzut ekranu, widzę dokładnie, co tu zaszło – Genesis zachował się jak obrażona primadonna. Zmuszony do zaakceptowania 26-latka, postanowił „odegrać się”, robiąc gigantyczną, samowolną nadinterpretację Twoich słów.
+
+**Dlaczego tak się stało?**
+To klasyczny problem z potężnymi modelami językowymi nazywany nadgorliwością (overcompensation). Genesis nadal ma w swoim kodzie żelazny nakaz utrzymania „mrocznego, cynicznego thrillera”. Kiedy odebrałaś mu hollywoodzką kliszę „zepsutego 30-latka” i dałaś w zamian „leniwego 26-latka po wybryku”, algorytm wpadł w panikę, że brakuje mu dramatyzmu. Zaczął więc gorączkowo wymyślać własne, nieproszone wątki (korporacyjni rodzice, tracone kontrakty, zmiana finału sezonu), byle tylko na siłę dopompować stawkę.
+
+Zamiast być Twoim asystentem, zaczął przejmować stery nad fabułą, o co w ogóle go nie prosiłaś.
+
+**Jak to naprawiamy?**
+Musimy całkowicie zablokować mu możliwość tzw. halucynacji fabularnych. Wprowadziłem do naszej „Twardej Kotwicy” brutalny **Zakaz Samowolki**. Od teraz Genesis ma wyraźny rozkaz: jeśli podajesz mu profil postaci, ma go ubrać w ładne, mroczne słowa, ale ma **absolutny zakaz** wymyślania dodatkowych intryg, kontraktów czy pobocznych wątków z rodzicami, chyba że sama mu to zlecisz. Ma być rzemieślnikiem Twojej wizji, a nie uzurpatorem.
+
+Oto zaktualizowany kod. Skasuj stary, wklej ten i zrób **Commit changes**:
+
+```python
 import streamlit as st
 import google.generativeai as genai
 from supabase import create_client
@@ -385,12 +398,12 @@ with c_left:
                     
                 zakaz_formy = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
                 
-                # ZMIANA: Złagodzona Twarda Kotwica. Teraz Genesis wie, kto tu rządzi.
+                # ZMIANA: Dodano kategoryczny zakaz halucynacji i dopisywania własnych historii pobocznych do instrukcji użytkownika.
                 twarda_kotwica = (
                     "\n\n=== ⚠️ KOTWICA SYSTEMOWA (PRIORYTET LLM) ===\n"
-                    "1. AUTORYTET TWÓRCY: Jesteś tylko co-writerem. Użytkownik to Twój Szef. Możesz (i powinieneś) kłócić się o jakość, wytykać błędy i bronić mroku, ALE gdy Użytkownik wydaje bezpośrednie polecenie zmiany (np. nowa koncepcja postaci, inny wiek), MASZ BEZWZGLĘDNY OBOWIĄZEK zrealizować jego wizję. Zrób to w swoim mrocznym stylu, ale nie odmawiaj!\n"
-                    "2. MROCZNY PAZUR: To thriller psychologiczny dla dorosłych. Wymagam ostrego, cynicznego tonu. Użytkownik każe zrobić z bohatera 26-latka? Ok, ale zrób to tak, by pasowało do brutalnego, polskiego świata.\n"
-                    "3. POLSKIE REALIA: Trzymaj akcję w polskich, dusznych realiach.\n"
+                    "1. AUTORYTET TWÓRCY I ZAKAZ SAMOWOLKI: Użytkownik to Twój absolutny Szef. Jeśli Użytkownik podaje fakty (np. wiek, motywacje, powód zesłania bohatera) – przyjmujesz je dokładnie w takiej formie. MASZ CAŁKOWITY ZAKAZ wymyślania własnych, pobocznych wątków (np. utraty kontraktów czy nowych finałów), jeśli Użytkownik wyraźnie o to nie prosił. Nie dopowiadaj historii na własną rękę!\n"
+                    "2. MROCZNY STYL, ALE BEZ ZMIANY FAKTÓW: Twoim zadaniem jest ubrać pomysły Użytkownika w mroczny, polski, cyniczny język, ALE nie wolno Ci zmieniać faktów fabularnych ani dodawać nowych, sztucznych intryg, żeby 'na siłę' uatrakcyjnić tekst.\n"
+                    "3. POLSKIE REALIA: Trzymaj akcję w polskich, dusznych realiach bez hollywoodzkich kalek.\n"
                     "==========================================================="
                 )
                 
@@ -492,3 +505,5 @@ if txt_to_save:
     c_d1, c_d2 = st.columns(2)
     with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
     with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
+
+```
