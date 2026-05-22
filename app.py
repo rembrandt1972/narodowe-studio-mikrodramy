@@ -32,7 +32,8 @@ pre, code, .stMarkdown p { white-space: pre-wrap !important; word-wrap: break-wo
 # --- 2. SESJA I LOGOWANIE ---
 if "messages" not in st.session_state: st.session_state.messages = []
 if "auth" not in st.session_state: st.session_state.auth = False
-if "active_file" not in st.session_state: st.session_state.active_file = "1"
+# ZMIANA: Inicjujemy natychmiast poprawny klucz odcinka
+if "n_final" not in st.session_state: st.session_state.n_final = "Odcinek 1"
 
 if not st.session_state.auth:
     st.markdown("<h1 style='text-align: center; padding-top: 20vh; letter-spacing: 0.3em;'>🎬 MIKRODRAMA STUDIO PL</h1>", unsafe_allow_html=True)
@@ -90,7 +91,7 @@ def get_db_data(table, project):
 
 # --- 4. STRUKTURA SEZONU MIKRODRAMY ---
 def get_season_arc(ep_str):
-    try: ep = int(''.join(filter(str.isdigit, ep_str)))
+    try: ep = int(''.join(filter(str.isdigit, str(ep_str))))
     except: return "Faza: Pilotażowa."
     if ep <= 10: return "Faza 1-10: Premise ignition (Haczyk startowy)."
     elif ep <= 30: return "Faza 11-30: Binge lock & Pierwszy wielki zwrot."
@@ -198,7 +199,8 @@ c_left, c_right = st.columns([7, 3])
 
 with c_right:
     st.markdown("### 📍 GPS FABUŁY")
-    st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(st.session_state.active_file)}</div>", unsafe_allow_html=True)
+    # ZMIANA: Używamy sztywnego klucza n_final
+    st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(st.session_state.n_final)}</div>", unsafe_allow_html=True)
     
     st.markdown("### DETEKTYW WĄTKÓW")
     o_loops = get_system_data(f"SYS_WATKI_{active_p}")
@@ -291,7 +293,9 @@ with c_left:
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
-                akt_odc = st.session_state.active_file
+                
+                # ZMIANA: Agent czyta bezpośrednio z twardego klucza sesji!
+                akt_odc = st.session_state.n_final
                 
                 baza_dna = (
                     f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
@@ -317,10 +321,10 @@ with c_left:
                 if agent == "Genesis PL":
                     sp = (
                         "Jesteś Agentem Genesis Mikrodrama PL (Główny Showrunner, Kreator Psychologii i Twój Partner).\n"
-                        "TRYB PRACY (KRYTYCZNE): Rozmawiasz ze mną krok po kroku. Zadawaj max 2 pytania, proponuj warianty A/B/C i ZAWSZE czekaj na moją decyzję.\n"
-                        "OSOBOWOŚĆ: Jesteś bezlitosnym polskim twórcą. Kłóć się ze mną, wymagaj głębszej psychologii. Broń jakości!\n"
-                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują silnych, psychologicznych emocji, walki o pozycję.\n"
-                        "TON I STYL: Konflikty w białych rękawiczkach. POLSKIE REALIA. Ma być duszno od tajemnic, elegancko, mrocznie.\n"
+                        "TRYB PRACY: Rozmawiasz ze mną krok po kroku. Zadawaj max 2 pytania, proponuj warianty A/B/C i ZAWSZE czekaj na moją decyzję.\n"
+                        "OSOBOWOŚĆ: Jesteś doświadczonym twórcą hitowych mikrodram dla kobiet. Twój cel to wielkie emocje, namiętności, zdrady i romanse. Kłóć się ze mną tylko o jakość i logikę, ale szanuj wybrany przeze mnie gatunek.\n"
+                        "GRUPA DOCELOWA: Kobiety 20-45 lat. Oczekują wielkich emocji, porywającego romansu, dramatycznych perypetii i walki o miłość/pozycję.\n"
+                        "TON I STYL: Dostosuj się do wybranego gatunku (romans, obyczaj, dramat). POLSKIE REALIA. Skup się na psychologii postaci.\n"
                         "\n=== ŚCISŁY STANDARD STRUKTURY BIBLII SERIALU ===\n"
                         "Kiedy użytkownik poprosi Cię o stworzenie Biblii projektu (show bible), MUSISZ wygenerować dokument zawierający dokładnie te sekcje:\n"
                         "1. FUNDAMENTY PROJEKTU\n"
@@ -329,12 +333,12 @@ with c_left:
                         "   - Teaser: Krótki, klimatyczny opis otwierający.\n"
                         "2. ŚWIAT I BOHATEROWIE\n"
                         "   - Świat przedstawiony: Opis realiów, zasad i miejsc akcji.\n"
-                        "   - Profile postaci: Psychologia, głębokie motywacje, mroczne sekrety i siatka relacji.\n"
+                        "   - Profile postaci: Psychologia, głębokie motywacje, tajemnice i siatka relacji.\n"
                         "   - Ton i styl: Oprawa wizualna, tempo akcji pod format pionowy.\n"
                         "3. FABUŁA I STRUKTURA\n"
                         "   - Streszczenie sezonu: Główny wątek dramaturgiczny prozą (ZAKAZ pisania w punktach!).\n"
-                        "   - Opisy odcinków: Krótkie synopsisy pierwszych kilku epizodów (z jasnym zaznaczeniem Hooków).\n"
-                        "   - Potencjał na kolejne sezony: Zarys rozwoju historii.\n"
+                        "   - Opisy odcinków: Krótkie synopsisy pierwszych epizodów (z jasnym zaznaczeniem Hooków).\n"
+                        "   - Potencjał na kolejne sezony.\n"
                         "================================================\n"
                         f"{baza_dna}"
                     )
@@ -349,7 +353,7 @@ with c_left:
                     sp = (
                         f"Jesteś Architektem Odcinka w Mikrodrama PL. ODCINEK: {akt_odc}.\n"
                         "TWOJE ZADANIE: Tworzysz precyzyjną DRABINKĘ (mapę bitów / step-outline) jednego, konkretnego odcinka.\n"
-                        "ROZBICIE: Rozbij historię na bity (0-3 sek, 3-15 sek, 15-35 sek, 35-50 sek, 50-90 sek). Pilnuj punktów zwrotnych.\n"
+                        "ROZBICIE: Rozbij historię na bity (0-3 sek, 3-15 sek, 15-35 sek, 35-50 sek, 50-90 sek). Pilnuj punktów zwrotnych i uderzeń emocjonalnych.\n"
                         "WSPÓŁPRACA: Masz przygotować plan tak czysty, by po przekazaniu go agentowi 'Odcinki PL', mógł on napisać z tego gotowy scenariusz.\n"
                         f"{baza_dna}"
                     )
@@ -364,7 +368,7 @@ with c_left:
                     sp = (
                         "Jesteś elitarnym Polskim Scenarzystą ds. Dialogów. Format pionowy (9:16), żywi aktorzy.\n"
                         "ZADANIE: Otrzymujesz surowy scenariusz i szlifujesz GŁOSY postaci. 100% po polsku.\n"
-                        "PODTEKST I EMOCJE: Pisz podtekstem. Przerywaj zdania (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ taniej ekspozycji.\n"
+                        "PODTEKST I EMOCJE: Pisz tak, by aktorzy mieli co grać. Przerywaj zdania (używaj '-'). ZAKAZ 'szeleszczącego papieru' i ZAKAZ taniej ekspozycji.\n"
                         "WIZUALIA: Dbaj o didaskalia pod kamerę pionową – mikrowyrazy twarzy, drżące dłonie.\n"
                         f"{baza_dna}"
                     )
@@ -385,12 +389,11 @@ with c_left:
                     
                 zakaz_formy = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań, komentarzy od siebie typu 'Oto tekst' czy podsumowań. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
                 
-                # ZMIANA: Dodano kategoryczny zakaz halucynacji i dopisywania własnych historii pobocznych do instrukcji użytkownika.
                 twarda_kotwica = (
                     "\n\n=== ⚠️ KOTWICA SYSTEMOWA (PRIORYTET LLM) ===\n"
-                    "1. AUTORYTET TWÓRCY I ZAKAZ SAMOWOLKI: Użytkownik to Twój absolutny Szef. Jeśli Użytkownik podaje fakty (np. wiek, motywacje, powód zesłania bohatera) – przyjmujesz je dokładnie w takiej formie. MASZ CAŁKOWITY ZAKAZ wymyślania własnych, pobocznych wątków (np. utraty kontraktów czy nowych finałów), jeśli Użytkownik wyraźnie o to nie prosił. Nie dopowiadaj historii na własną rękę!\n"
-                    "2. MROCZNY STYL, ALE BEZ ZMIANY FAKTÓW: Twoim zadaniem jest ubrać pomysły Użytkownika w mroczny, polski, cyniczny język, ALE nie wolno Ci zmieniać faktów fabularnych ani dodawać nowych, sztucznych intryg, żeby 'na siłę' uatrakcyjnić tekst.\n"
-                    "3. POLSKIE REALIA: Trzymaj akcję w polskich, dusznych realiach bez hollywoodzkich kalek.\n"
+                    "1. AUTORYTET TWÓRCY I ZAKAZ SAMOWOLKI: Użytkownik to Twój absolutny Szef. Jeśli Użytkownik podaje fakty (np. wiek, motywacje, rozwój relacji, gatunek) – przyjmujesz je dokładnie w takiej formie. MASZ CAŁKOWITY ZAKAZ wymyślania własnych, pobocznych wątków, jeśli Użytkownik o to nie prosił. Nie dopowiadaj historii na własną rękę!\n"
+                    "2. WIELKIE EMOCJE I ZWROTY AKCJI: Twoim zadaniem jest ubrać pomysły Użytkownika w angażujący, pełen napięcia język (odpowiedni dla mikrodramy - romans, zdrada, wielka miłość, tajemnice), ALE nie wolno Ci zmieniać faktów fabularnych ani dodawać sztucznych intryg.\n"
+                    "3. POLSKIE REALIA: Trzymaj akcję w polskich realiach bez hollywoodzkich kalek.\n"
                     "==========================================================="
                 )
                 
@@ -415,8 +418,8 @@ k1, k2, k3 = st.columns([2, 2, 1])
 with k1: 
     st.text_input("AKTYWNY PROJEKT:", value=active_p, disabled=True)
 with k2: 
-    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", value=st.session_state.active_file, key="n_final")
-    st.session_state.active_file = plik
+    # ZMIANA: Używamy sztywnego klucza n_final
+    plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", key="n_final")
 with k3: 
     stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
 
@@ -428,67 +431,4 @@ txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250
 if st.button("💉 WSTRZYKNIJ TEN TEKST DO CZATU"):
     if txt_to_save.strip():
         st.session_state.messages.append({"role": "user", "content": f"Oto zaktualizowany tekst:\n\n{txt_to_save}"})
-        save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
-        st.rerun()
-
-c1, c2 = st.columns(2)
-with c1:
-    if st.button("💾 KROK 1: ZAPISZ TEKST", use_container_width=True):
-        if txt_to_save.strip():
-            try:
-                bazowa_nazwa = f"{active_p} / {stat} - {plik}"
-                istniejace = db.table("archiwum_mikro").select("projekt_nazwa").like("projekt_nazwa", f"{bazowa_nazwa}%").execute()
-                licznik = len(istniejace.data) + 1
-                db.table("archiwum_mikro").insert({"projekt_nazwa": f"{bazowa_nazwa} (v{licznik})", "tresc": txt_to_save.replace('\x00', ''), "agent": "System"}).execute()
-                st.success(f"Zapisano w bazie jako: wersja v{licznik}!")
-            except Exception as e:
-                st.error(f"Błąd zapisu do bazy: {e}")
-        else: st.warning("Pole tekstu jest puste!")
-with c2:
-    if st.button("🔍 KROK 2: AKTUALIZUJ PAMIĘĆ AI", use_container_width=True):
-        if txt_to_save.strip():
-            with st.spinner("Analiza bohaterów i rekwizytów..."):
-                try:
-                    prompt_petle = f"Wyciągnij otwarte pętle fabularne z tekstu. Krótka lista punktowana. Zero lania wody. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_WATKI_{active_p}", model.generate_content(prompt_petle, safety_settings=safe_config).text)
-                    
-                    prompt_szafa = f"Wypisz w punktach kto w co jest ubrany i jakie trzyma rekwizyty. Krótka lista. Tekst: {txt_to_save}"
-                    save_system_data(f"SYS_SZAFA_{active_p}", model.generate_content(prompt_szafa, safety_settings=safe_config).text)
-                    
-                    p_up = model.generate_content(f"Zwróć TYLKO JSON postaci: imie, status_obecny, sejf_glosu. Tekst: {txt_to_save}", safety_settings=safe_config).text
-                    m = re.search(r'\[.*\]', p_up, re.DOTALL)
-                    if m:
-                        for p in json.loads(m.group(0)):
-                            nm = p.get("imie", "NN")
-                            db.table("postacie_mikro").delete().eq("projekt_nazwa", active_p).eq("imie", nm).execute()
-                            db.table("postacie_mikro").insert({"projekt_nazwa": active_p, "imie": nm, "status_obecny": p.get("status_obecny", "Aktywny"), "sejf_glosu": p.get("sejf_glosu", "Standard")}).execute()
-                    
-                    st.success("Pamięć agentów zaktualizowana!")
-                    st.rerun()
-                except Exception as e: st.warning(f"Błąd analizy: {e}")
-        else: st.warning("Brak tekstu do analizy.")
-
-st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
-d1, d2, d3, d4 = st.columns(4)
-with d1:
-    if st.button("📖 BIBLIA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
-        else: st.warning("Okno podglądu jest puste!")
-with d2:
-    if st.button("🪜 DRABINKA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DRABINKA_{active_p}", txt_to_save); st.rerun()
-        else: st.warning("Okno podglądu jest puste!")
-with d3:
-    if st.button("🎯 MAPA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_MAPA_{active_p}", txt_to_save); st.rerun()
-        else: st.warning("Okno podglądu jest puste!")
-with d4:
-    if st.button("⚖️ DOKTRYNA", use_container_width=True):
-        if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
-        else: st.warning("Okno podglądu jest puste!")
-
-if txt_to_save:
-    st.divider()
-    c_d1, c_d2 = st.columns(2)
-    with c_d1: st.download_button("📄 POBIERZ .TXT", data=txt_to_save, file_name=f"{active_p}_{plik}.txt", use_container_width=True)
-    with c_d2: st.download_button("🎬 POBIERZ FINAL DRAFT (.fdx)", data=create_fdx(txt_to_save), file_name=f"{active_p}_{plik}.fdx", mime="application/xml", use_container_width=True)
+        save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.
