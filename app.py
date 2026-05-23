@@ -32,7 +32,7 @@ pre, code, .stMarkdown p { white-space: pre-wrap !important; word-wrap: break-wo
 # --- 2. SESJA I LOGOWANIE ---
 if "messages" not in st.session_state: st.session_state.messages = []
 if "auth" not in st.session_state: st.session_state.auth = False
-# ZMIANA: Inicjujemy natychmiast poprawny klucz odcinka
+if "active_file" not in st.session_state: st.session_state.active_file = "1"
 if "n_final" not in st.session_state: st.session_state.n_final = "Odcinek 1"
 
 if not st.session_state.auth:
@@ -117,12 +117,21 @@ def create_fdx(script_text):
 with st.sidebar:
     st.write(f"Autor: **{st.session_state.user}**")
     
+    # --- NOWA LOGIKA ZBIERANIA Z ARCHIWUM ---
     try:
         all_arch_side = db.table("archiwum_mikro").select("projekt_nazwa").execute()
-        all_names_side = [row['projekt_nazwa'] for row in all_arch_side.data] if all_arch_side.data else []
+        # Odrzucamy tylko śmieci systemowe zaczynające się od SYS_
+        all_names_side = [row['projekt_nazwa'] for row in all_arch_side.data if not str(row['projekt_nazwa']).startswith("SYS_")]
+        
+        # Wyciągamy poprawnie sformatowane projekty
         projekty_side = sorted(list(set([n.split(" / ")[0] for n in all_names_side if " / " in n])))
+        
+        # Zbieramy stare, niesformatowane pliki koleżanki (bez ukośnika)
+        pliki_inne = [n for n in all_names_side if " / " not in n]
     except:
         projekty_side = []
+        all_names_side = []
+        pliki_inne = []
 
     wyb_proj = st.selectbox("Nazwa Projektu:", ["-- Nowy Projekt --"] + projekty_side)
     if wyb_proj == "-- Nowy Projekt --":
@@ -148,11 +157,20 @@ with st.sidebar:
         st.caption("🎬 **Odcinki:** Pisze gotowy scenariusz na bazie drabinki.")
     
     with st.expander("🗄️ ARCHIWUM PROJEKTÓW", expanded=False):
-        if projekty_side:
-            wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + projekty_side)
+        # Doklejamy folder z sierotami
+        lista_archiwum = projekty_side.copy()
+        if pliki_inne:
+            lista_archiwum.append("📦 INNE (Stare pliki)")
+            
+        if lista_archiwum:
+            wybrany_proj = st.selectbox("Projekt:", ["-- Wybierz --"] + lista_archiwum)
             if wybrany_proj != "-- Wybierz --":
-                pliki_projektu = [n for n in all_names_side if n.startswith(f"{wybrany_proj} / ")]
-                wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + pliki_projektu)
+                if wybrany_proj == "📦 INNE (Stare pliki)":
+                    pliki_projektu = pliki_inne
+                else:
+                    pliki_projektu = [n for n in all_names_side if n.startswith(f"{wybrany_proj} / ")]
+                
+                wybrany_plik = st.selectbox("Plik:", ["-- Wybierz... --"] + sorted(pliki_projektu))
                 if wybrany_plik != "-- Wybierz... --":
                     tresc_arch = get_system_data(wybrany_plik)
                     st.text_area("Podgląd:", value=tresc_arch, height=150, disabled=True)
@@ -160,7 +178,9 @@ with st.sidebar:
                         st.session_state.messages.append({"role": "user", "content": f"Oto przywrócony tekst z archiwum ({wybrany_plik}), pracujmy na nim dalej:\n\n{tresc_arch}"})
                         save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", json.dumps(st.session_state.messages))
                         st.rerun()
-                    st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{wybrany_plik}.txt", use_container_width=True)
+                    # Zabezpieczenie nazwy pliku przed błędami Windows/Mac
+                    bezpieczna_nazwa = wybrany_plik.replace("/", "_")
+                    st.download_button("⬇️ Pobierz plik (.txt)", data=tresc_arch, file_name=f"{bezpieczna_nazwa}.txt", use_container_width=True)
         else:
             st.info("Brak zapisów w bazie.")
             
@@ -199,7 +219,6 @@ c_left, c_right = st.columns([7, 3])
 
 with c_right:
     st.markdown("### 📍 GPS FABUŁY")
-    # ZMIANA: Używamy sztywnego klucza n_final
     st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(st.session_state.n_final)}</div>", unsafe_allow_html=True)
     
     st.markdown("### DETEKTYW WĄTKÓW")
@@ -293,8 +312,6 @@ with c_left:
                 
                 akt_zadanie = st.session_state.messages[-1]["content"]
                 hist = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[:-1]])
-                
-                # ZMIANA: Agent czyta bezpośrednio z twardego klucza sesji!
                 akt_odc = st.session_state.n_final
                 
                 baza_dna = (
@@ -418,7 +435,6 @@ k1, k2, k3 = st.columns([2, 2, 1])
 with k1: 
     st.text_input("AKTYWNY PROJEKT:", value=active_p, disabled=True)
 with k2: 
-    # ZMIANA: Używamy sztywnego klucza n_final
     plik = st.text_input("NAZWA PLIKU (np. Odcinek 1):", key="n_final")
 with k3: 
     stat = st.selectbox("STATUS", ["Robocze", "Gotowe", "Kanon"])
