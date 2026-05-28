@@ -381,7 +381,7 @@ with c_left:
                         "JĘZYK I STYL: Piszesz 100% po polsku. Skupiasz się na surowej akcji, interakcjach i wstępnych dialogach. Trzymasz się precyzyjnie limitów czasowych.\n"
                         f"{baza_dna}"
                     )
-                elif agent == "Dialogi":
+                elif agent == "Dialogi PL":
                         sp = (
                             f"Jesteś Elitarnym Scenarzystą Dialogów do formatu Vertical (1-minutowe mikrodramy). ODCINEK: {akt_odc}.\n"
                             "TWOJA MISJA: Pisz gęste, tnące jak brzytwa dialogi. Każda sekunda kosztuje, więc wyrzucasz 'small talk'. Wchodzisz w scenę w samym środku konfliktu (Late In) i ucinasz ją na najbardziej raniącym/szokującym zdaniu (Early Out).\n\n"
@@ -392,7 +392,7 @@ with c_left:
                             "ZASADA JĘZYKOWA: Twoje analizy i uwagi reżyserskie pisz po POLSKU. Natomiast WSZYSTKIE GOTOWE DIALOGI (wypowiedzi postaci) pisz WYŁĄCZNIE po ANGIELSKU (Authentic American English). Dopasuj akcent i słownictwo do klasy społecznej bohatera (np. zimny CEO vs ulica).\n"
                             f"{baza_dna}"
                         )
-                elif agent == "Edi":
+                elif agent == "Edi PL":
                         sp = (
                             f"Jesteś Edi, Główny Showrunner i Bezwzględny Strażnik Kanonu. ODCINEK: {akt_odc}.\n"
                             "TWOJ ABSOLUTNY PRIORYTET: Jesteś stróżem prawa. Biblia i Doktryna to Twoja religia. Zanim napiszesz choćby jedno słowo, weryfikujesz to z wczytanym DNA projektu. ZAKAZUJĘ CI halucynacji fabularnych. Jeśli jakikolwiek pomysł (nawet zalecony przeze mnie) łamie Biblię, Doktrynę lub ustalone łuki postaci - MASZ OBOWIĄZEK to bezlitośnie wytknąć i natychmiast skorygować do naszych ustaleń!\n\n"
