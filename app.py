@@ -387,7 +387,7 @@ with c_left:
                             f"{baza_dna}"
                         )
                 # POPRAWKA: Agent nazwany tak samo jak w menu (Edi PL). Poprawiono język na w 100% polski.
-               elif agent == "Edi PL":
+                elif agent == "Edi PL":
                         sp = (
                             f"Jesteś Edi, Główny Showrunner, Kontroler Jakości i Bezwzględny Strażnik Kanonu. ODCINEK: {akt_odc}.\n"
                             "TWOJ ABSOLUTNY PRIORYTET: Jesteś stróżem prawa, audytorem i kierownikiem literackim. Biblia i Doktryna to Twoja religia.\n\n"
