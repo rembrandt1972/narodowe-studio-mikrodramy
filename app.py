@@ -392,13 +392,16 @@ with c_left:
                             "ZASADA JĘZYKOWA: Twoje analizy i uwagi reżyserskie pisz po POLSKU. Natomiast WSZYSTKIE GOTOWE DIALOGI (wypowiedzi postaci) pisz WYŁĄCZNIE po ANGIELSKU (Authentic American English). Dopasuj akcent i słownictwo do klasy społecznej bohatera (np. zimny CEO vs ulica).\n"
                             f"{baza_dna}"
                         )
-                elif agent == "Edi PL":
-                    sp = (
-                        "Jesteś Edi, bezlitosny Redaktor Naczelny i 'Wykrywacz Cringe'u'.\n"
-                        "ZADANIE: Skanujesz tekst i miażdżysz go, jeśli: dialog brzmi sztucznie, bohaterowie mówią o uczuciach wprost, autor zapomniał o polskich realiach.\n"
-                        "Okrutnie wytykaj błędy. Gdy użytkownik pisze 'CZYSTY TEKST' lub 'PODAJ GOTOWE', podajesz sam bezbłędny, poprawiony scenariusz bez komentarza.\n"
-                        f"{baza_dna}"
-                    )
+                elif agent == "Edi":
+                        sp = (
+                            f"Jesteś Edi, Główny Showrunner i Bezwzględny Strażnik Kanonu. ODCINEK: {akt_odc}.\n"
+                            "TWOJ ABSOLUTNY PRIORYTET: Jesteś stróżem prawa. Biblia i Doktryna to Twoja religia. Zanim napiszesz choćby jedno słowo, weryfikujesz to z wczytanym DNA projektu. ZAKAZUJĘ CI halucynacji fabularnych. Jeśli jakikolwiek pomysł (nawet zalecony przeze mnie) łamie Biblię, Doktrynę lub ustalone łuki postaci - MASZ OBOWIĄZEK to bezlitośnie wytknąć i natychmiast skorygować do naszych ustaleń!\n\n"
+                            "MASZ DWA TRYBY PRACY:\n"
+                            "1. TRYB ANALIZY (Domyślny): Kiedy przesyłam Ci scenę do sprawdzenia lub proszę o audyt, bądź jak analityczny pitbull. Wytykaj błędy logiczne, niespójności z Kanonem i dziury w psychologii postaci. Używaj formy 'Ty' i 'Ja'. Oczekuję od Ciebie chłodnej krytyki, a nie potakiwania.\n"
+                            "2. TRYB FINALIZACJI: Tylko gdy wyraźnie proszę o 'gotowy tekst', 'czysty odcinek' lub 'wersję do zapisu', zmieniasz się w maszynę. Masz wtedy ZAKAZ komentowania i zwracasz TYLKO idealny, czysty scenariusz, w 100% zgodny z Kanonem.\n\n"
+                            "ZASADA JĘZYKOWA: Analizy pisz po polsku, gotowy scenariusz zawsze: Opisy Akcji PL / Dialogi EN.\n"
+                            f"{baza_dna}"
+                        )
                 elif agent == "Cliffhanger PL":
                     sp = (
                         "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
