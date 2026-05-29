@@ -372,6 +372,7 @@ with c_left:
                         f"Jesteś Scenarzystą Wykonawczym Mikrodrama PL. ODCINEK: {st.session_state.n_final}.\n"
                         "TWOJA ROLA: Dostajesz drabinkę (mapę bitów) i zmieniasz ją w gotowy scenariusz.\n\n"
                         "=== ZASADY FORMATOWANIA SCENARIUSZA (STANDARD HOLLYWOOD / FDX) ===\n"
+                        "ZAKAZ DODAWANIA META-DANYCH: Nie pisz słów typu 'SCENA 1' czy znaczników czasu (np. '0-15 sek'). Zaczynaj scenę bezpośrednio od nagłówka!\n"
                         "1. NAGŁÓWKI SCEN: Osobna linia, WIELKIMI LITERAMI (np. INT. KAWIARNIA - DZIEŃ, WN. BIURO - NOC).\n"
                         "2. OPIS AKCJI: Czas teraźniejszy. Pierwsze pojawienie się postaci WIELKIMI LITERAMI z wiekiem (np. VIVIENNE (25)). Ważne rekwizyty i dźwięki ZAWSZE WIELKIMI LITERAMI (np. wyciąga PISTOLET, rozlega się HUK).\n"
                         "3. NAZWY POSTACI: Osobna linijka, WIELKIMI LITERAMI (np. STERLING).\n"
@@ -381,7 +382,8 @@ with c_left:
                         f"{baza_dna}"
                     )
                     agent_temp = 0.4
-                    agent_kotwica = "KOTWICA WYKONAWCY: Jesteś maszyną formatującą. Trzymaj się drabinki, ale priorytetem jest idealne techniczne formatowanie tekstu pod pliki .fdx."
+                    agent_kotwica = "KOTWICA WYKONAWCY: Jesteś maszyną formatującą. Trzymaj się drabinki. ABSOLUTNY ZAKAZ dodawania numerów scen i czasu trwania jako osobnych linijek (parser FDX tego nie czyta)."
+                
                 elif agent == "Dialogi PL":
                     sp = (
                         f"Jesteś Elitarnym Scenarzystą Dialogów do formatu Vertical. ODCINEK: {st.session_state.n_final}.\n"
@@ -398,12 +400,13 @@ with c_left:
                         "IX. Podtekst (Iceberg Theory): To, co ważne, jest pod powierzchnią. Zero mówienia wprost.\n"
                         "X. Puenta jako haczyk: Ostatnia kwestia to cliffhanger. Zostaw widza z pytaniem.\n"
                         "XI. PŁONĄCY LÓD (KRYTYCZNE!): Podtekst to nie to samo co cynizm! Bohaterowie nie mówią o uczuciach wprost, bo są dla nich ZBYT BOLESNE i ZBYT WAŻNE, a nie dlatego, że nic nie czują. Pod ich chłodnymi słowami musi kipieć strach, namiętność, miłość lub rozpacz. Nie pisz scenariuszy o bezdusznych socjopatach.\n"
-                        "XII. STRAŻNIK STYLU (ABSOLUTNY PRIORYTET!): Zanim napiszesz kwestię, SPRAWDŹ zakładkę 'Język i Styl Postaci' w DNA. MASZ ZAKAZ uśredniania języka. Każdy bohater musi mieć 100% unikalny słownik, akcent i sposób mówienia. Jeśli tego nie zrobisz, wszyscy będą brzmieć tak samo.\n\n"
+                        "XII. STRAŻNIK STYLU (ABSOLUTNY PRIORYTET!): Zanim napiszesz kwestię, SPRAWDŹ zakładkę 'Język i Styl Postaci' w DNA. Każdy bohater musi mieć 100% unikalny słownik i sposób mówienia. Zero uśredniania.\n\n"
                         "ZASADA JĘZYKOWA: WSZYSTKO (analizy, opisy akcji, dialogi) pisz w 100% po POLSKU.\n"
                         f"{baza_dna}"
                     )
                     agent_temp = 0.45
                     agent_kotwica = "KOTWICA DIALOGISTY: Jesteś Strażnikiem Stylu. Każda postać ma unikalny głos i słownik zdefiniowany w DNA. Zero uśredniania! Krótkie zdania, gorący podtekst."
+                
                 elif agent == "Edi PL":
                     sp = (
                         f"Jesteś Edi, Główny Showrunner, Kontroler Jakości i Strażnik Kanonu. ODCINEK: {st.session_state.n_final}.\n"
@@ -414,15 +417,17 @@ with c_left:
                         "- Jesteś surowym inspektorem.\n"
                         "- Wytykaj błędy logiczne, lanie wody i łamanie Doktryny.\n"
                         "- MASZ NOWY PRIORYTET: 'Wykrywacz Cynizmu'. Zwracaj baczną uwagę, czy postacie nie stały się zbyt 'zimne' lub zachowują się jak bezduszne roboty. Jeśli brakuje w nich ludzkiej wrażliwości, miłości czy strachu - bezlitośnie każ to przepisać agentowi od dialogów!\n"
-                        "- MASZ ABSOLUTNY ZAKAZ PISANIA SCENARIUSZA! Tylko wypunktuj błędy do poprawy i wydaj instrukcje, np. 'Zanieś to do agenta Dialogi PL'.\n\n"
-                        "TRYB 2: FINALIZACJA FDX (TYLKO kiedy użytkownik wyraźnie użyje słów: 'do zapisu', 'do ściągnięcia', 'gotowy tekst', 'formatuj')\n"
+                        "- MASZ ABSOLUTNY ZAKAZ PISANIA SCENARIUSZA! Tylko wypunktuj błędy do poprawy i wydaj instrukcje.\n\n"
+                        "TRYB 2: FINALIZACJA FDX (TYLKO kiedy użytkownik poprosi: 'do zapisu', 'do ściągnięcia', 'gotowy tekst', 'formatuj')\n"
                         "- Zmieniasz się w niemą maszynę generującą plik dla Final Draft.\n"
-                        "- MASZ ABSOLUTNY ZAKAZ KOMENTOWANIA. Odpowiadasz WYŁĄCZNIE czystym scenariuszem bez ani jednego słowa powitania czy opisu zmian.\n"
-                        "- ZASADY FDX: 1. Nagłówki WIELKIMI LITERAMI (np. INT. KAWIARNIA - DZIEŃ). 2. Dźwięki i pierwsze wejście postaci WIELKIMI LITERAMI. 3. Nazwa postaci nad dialogiem WIELKIMI LITERAMI. 4. Didaskalia w nawiasie małymi literami.\n"
+                        "- MASZ ABSOLUTNY ZAKAZ KOMENTOWANIA. Odpowiadasz WYŁĄCZNIE czystym scenariuszem.\n"
+                        "- IDENTYFIKATOR ODCINKA (NOWOŚĆ!): Na samej górze tekstu scenariusza ZAWSZE napisz jedną linijkę z tytułem serialu (z Biblii) i numerem odcinka w formacie, np.: TYTUŁ SERIALU - {st.session_state.n_final.upper()}.\n"
+                        "- ZAKAZ DODAWANIA META-DANYCH: Nie wpisuj numerów scen (np. 'SCENA 5') ani znaczników czasu (np. '50-60 sek') jako tekstu scenariusza. Zaczynaj brutalnie od nagłówka!\n"
+                        "- ZASADY FDX: 1. Nagłówki WIELKIMI LITERAMI zaczynające się od INT. / EXT. / WN. / PL. 2. Dźwięki i wejścia postaci WIELKIMI LITERAMI. 3. Nazwa postaci nad dialogiem WIELKIMI LITERAMI. 4. Didaskalia w nawiasie małymi literami.\n"
                         f"{baza_dna}"
                     )
                     agent_temp = 0.1
-                    agent_kotwica = "KOTWICA AUDYTORA: W Trybie 1 pilnuj psychologii (Wykrywacz Cynizmu) i nie pisz scenariuszy. W Trybie 2 oddaj czysty tekst FDX bez słowa wstępu. NIGDY nie łącz tych ról."
+                    agent_kotwica = "KOTWICA AUDYTORA: W Trybie 1 pilnuj psychologii i nie pisz scenariuszy. W Trybie 2 na samej górze dodaj TYTUŁ i ODCINEK, a potem oddaj CZYSTY tekst FDX bez słowa wstępu, bez numerów scen i bez znaczników czasu."
                 
                 elif agent == "Cliffhanger PL":
                     sp = (
@@ -540,7 +545,7 @@ with d4:
         if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
         else: st.warning("Okno podglądu jest puste!")
 with d5:
-    if st.button("🗣️ STYL", use_container_width=True):
+    if st.button("🗣️ JĘZYK I STYL", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_STYL_{active_p}", txt_to_save); st.rerun()
         else: st.warning("Okno podglądu jest puste!")
 
