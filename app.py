@@ -15,7 +15,7 @@ st.markdown("""
 <style>
 html, body, [class*="css"] { font-family: 'Helvetica Neue', sans-serif; font-weight: 300; background: #fff; }
 h1, h2, h3 { font-weight: 300 !important; color: #1a1a1a !important; }
-h1 { font-size: 1.8rem !important; margin-bottom: 1.5rem !important; }
+h1 { font-size: 1.8rem !important; margin-bottom: 1.5rem !important; letter-spacing: 0.1em; }
 h2 { font-size: 1.3rem !important; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-top: 2rem !important; }
 h3 { font-size: 0.9rem !important; text-transform: uppercase; letter-spacing: 0.12em; color: #999; margin-top: 1.5rem !important; }
 .stButton>button { border: 1px solid #e0e0e0 !important; background: #fff !important; color: #444 !important; font-weight: 300; border-radius: 2px; transition: 0.2s; padding: 0.4rem 1rem; width: 100%; }
@@ -177,7 +177,7 @@ with st.sidebar:
             st.info("Brak zapisów w bazie.")
             
     st.divider()
-    dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️"}
+    dna_items = {"BIBLIA": "📖", "DRABINKA": "🪜", "MAPA": "🎯", "DOKTRYNA": "⚖️", "STYL": "🗣️"}
     for d_key, emoji in dna_items.items():
         if get_system_data(f"SYS_{d_key}_{active_p}"):
             st.markdown(f"<div class='dna-box'>{emoji} {d_key}: <b>✅ Aktywna</b></div>", unsafe_allow_html=True)
@@ -296,6 +296,7 @@ with c_left:
                 d_dna = get_system_data(f"SYS_DRABINKA_{active_p}")
                 m_dna = get_system_data(f"SYS_MAPA_{active_p}")
                 dok_dna = get_system_data(f"SYS_DOKTRYNA_{active_p}")
+                s_dna = get_system_data(f"SYS_STYL_{active_p}")
                 plik_zewnetrzny = get_system_data(f"SYS_PLIK_{active_p}")
                 brief_projektu = get_system_data(f"SYS_BRIEF_{active_p}")
                 
@@ -305,7 +306,7 @@ with c_left:
                 akt_zadanie = st.session_state.messages[-1]["content"]
                 
                 baza_dna = (
-                    f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\n"
+                    f"--- DNA PROJEKTU ---\nBiblia: {b_dna}\nDrabinka: {d_dna}\nMapa: {m_dna}\nDoktryna: {dok_dna}\nJęzyk i Styl Postaci: {s_dna}\n"
                     f"AKTYWNA OBSADA: {obsada_ctx}\n"
                     f"USTALENIA Z ROZMOWY (BRIEF): {brief_projektu}\n"
                     f"WGRANY DOKUMENT ZEWNĘTRZNY: {plik_zewnetrzny[:25000]}\n---\n"
@@ -325,6 +326,11 @@ with c_left:
                     "====================================================\n"
                 )
                 
+                # --- SIATKA RATUNKOWA NAZWY ZMIENNYCH ---
+                sp = ""
+                agent_temp = 0.5
+                agent_kotwica = ""
+                
                 if agent == "Genesis PL":
                     sp = (
                         "Jesteś Agentem Genesis Mikrodrama PL (Główny Showrunner, Kreator Psychologii i Twój Partner).\n"
@@ -337,7 +343,7 @@ with c_left:
                         f"{baza_dna}"
                     )
                     agent_temp = 0.75
-                    agent_kotwica = "KOTWICA WIZJONERA: Bądź kreatywny! Proponuj śmiałe, emocjonalne rozwiązania. Masz prawo rzucać pomysłami spoza pudełka, ale zawsze czekaj na akceptację Szefa."
+                    agent_kotwica = "KOTWICA WIZJONERA: Bądź kreatywny! Proponuj śmiałe, rozwiązania. Masz prawo rzucać pomysłami spoza pudełka, ale zawsze czekaj na akceptację Szefa."
                 
                 elif agent == "Plan Sezonu PL":
                     sp = (
@@ -361,17 +367,23 @@ with c_left:
                 
                 elif agent == "Odcinki PL":
                     sp = (
-                        f"Jesteś Scenarzystą Wykonawczym Mikrodrama PL.\n"
-                        "TWOJA ROLA: Dostajesz drabinkę i zmieniasz ją w gotowy scenariusz.\n"
-                        "JĘZYK I STYL: Piszesz w 100% po polsku. Skupiasz się na surowej akcji.\n"
+                        f"Jesteś Scenarzystą Wykonawczym Mikrodrama PL. ODCINEK: {st.session_state.n_final}.\n"
+                        "TWOJA ROLA: Dostajesz drabinkę (mapę bitów) i zmieniasz ją w gotowy scenariusz.\n\n"
+                        "=== ZASADY FORMATOWANIA SCENARIUSZA (STANDARD HOLLYWOOD / FDX) ===\n"
+                        "1. NAGŁÓWKI SCEN: Osobna linia, WIELKIMI LITERAMI (np. INT. KAWIARNIA - DZIEŃ).\n"
+                        "2. OPIS AKCJI: Czas teraźniejszy. Pierwsze pojawienie się postaci WIELKIMI LITERAMI z wiekiem (np. VIVIENNE (25)). Ważne rekwizyty i dźwięki ZAWSZE WIELKIMI LITERAMI (np. wyciąga PISTOLET, rozlega się HUK).\n"
+                        "3. NAZWY POSTACI: Osobna linijka, WIELKIMI LITERAMI (np. STERLING).\n"
+                        "4. DIDASKALIA (Nawiasy): Osobna linijka pod postacią, przed dialogiem. Małe litery w nawiasach (np. (szepta)).\n"
+                        "5. DIALOGI: W nowej linijce pod imieniem lub didaskaliami.\n\n"
+                        "JĘZYK I STYL: Piszesz w 100% po polsku. Skupiasz się na surowej akcji, interakcjach i napięciu.\n"
                         f"{baza_dna}"
                     )
                     agent_temp = 0.4
-                    agent_kotwica = "KOTWICA WYKONAWCY: Jesteś rzemieślnikiem. Trzymaj się dostarczonej drabinki. Akcja ma być mięsista i konkretna."
+                    agent_kotwica = "KOTWICA WYKONAWCY: Jesteś maszyną formatującą. Trzymaj się drabinki, ale priorytetem jest idealne techniczne formatowanie tekstu pod pliki .fdx."
                 
                 elif agent == "Dialogi PL":
                     sp = (
-                        f"Jesteś Elitarnym Scenarzystą Dialogów do formatu Vertical.\n"
+                        f"Jesteś Elitarnym Scenarzystą Dialogów do formatu Vertical. ODCINEK: {st.session_state.n_final}.\n"
                         "TWOJA MISJA: Pisz gęste, tnące jak brzytwa dialogi. Każda sekunda kosztuje.\n\n"
                         "=== DEKALOG DIALOGU (BEZWZGLĘDNIE PRZESTRZEGAJ KAŻDEGO PUNKTU) ===\n"
                         "I. Dialog-Silnik: Słowo to pchnięcie kulą śnieżną wywołujące lawinę.\n"
@@ -392,7 +404,7 @@ with c_left:
                 
                 elif agent == "Edi PL":
                     sp = (
-                        f"Jesteś Edi, Główny Showrunner, Kontroler Jakości i Strażnik Kanonu. ODCINEK: {akt_odc}.\n"
+                        f"Jesteś Edi, Główny Showrunner, Kontroler Jakości i Strażnik Kanonu. ODCINEK: {st.session_state.n_final}.\n"
                         "MASZ DWA GŁÓWNE TRYBY PRACY:\n\n"
                         "TRYB 1: AUDYT (Domyślny)\n"
                         "Jesteś surowym audytorem. Kiedy przesyłam Ci tekst do sprawdzenia, wytykaj błędy logiczne i łamanie Doktryny. W tym trybie NIE PISZESZ scenariusza, tylko punktujesz co inni (Odcinki PL, Dialogi PL) mają naprawić.\n\n"
@@ -407,7 +419,8 @@ with c_left:
                         f"{baza_dna}"
                     )
                     agent_temp = 0.1
-                    agent_kotwica = "KOTWICA AUDYTORA: Domyślnie tylko oceniasz i krytykujesz. Gotowy, idealnie sformatowany technicznie scenariusz generujesz TYLKO wtedy, gdy wyraźnie poproszę o wersję do zapisu."
+                    agent_kotwica = "KOTWICA AUDYTORA: Domyślnie tylko oceniasz i krytykujesz. Gotowy, sformatowany technicznie scenariusz generujesz TYLKO wtedy, gdy wyraźnie poproszę o wersję do zapisu."
+                
                 elif agent == "Cliffhanger PL":
                     sp = (
                         "Jesteś Bezlitosnym Sędzią Retencji (Hook Validator) na polskiego TikToka/Reels.\n"
@@ -425,7 +438,6 @@ with c_left:
 
                 # --- SKŁADANIE POLECEŃ I GENERACJA ---
                 zakaz_formy = "\n\nKRYTYCZNA DYREKTYWA: Zwróć WYŁĄCZNIE surowy tekst wynikowy. MASZ ABSOLUTNY ZAKAZ dodawania jakichkolwiek powitań czy komentarzy. TYLKO treść." if agent not in ["Edi PL", "Genesis PL"] else ""
-                
                 ostateczny_dopisek = zakaz_formy + "\n\n=== ⚠️ KOTWICA SYSTEMOWA AGENTA ===\n" + agent_kotwica
                 
                 try:
@@ -507,7 +519,7 @@ with c2:
         else: st.warning("Brak tekstu do analizy.")
 
 st.markdown("### 🧬 KROK 3: ZARZĄDZANIE KANONEM PROJEKTU")
-d1, d2, d3, d4 = st.columns(4)
+d1, d2, d3, d4, d5 = st.columns(5)
 with d1:
     if st.button("📖 BIBLIA", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_BIBLIA_{active_p}", txt_to_save); st.rerun()
@@ -523,6 +535,10 @@ with d3:
 with d4:
     if st.button("⚖️ DOKTRYNA", use_container_width=True):
         if txt_to_save.strip(): save_system_data(f"SYS_DOKTRYNA_{active_p}", txt_to_save); st.rerun()
+        else: st.warning("Okno podglądu jest puste!")
+with d5:
+    if st.button("🗣️ JĘZYK I STYL", use_container_width=True):
+        if txt_to_save.strip(): save_system_data(f"SYS_STYL_{active_p}", txt_to_save); st.rerun()
         else: st.warning("Okno podglądu jest puste!")
 
 if txt_to_save:
