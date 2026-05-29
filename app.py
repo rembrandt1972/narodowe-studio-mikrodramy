@@ -350,7 +350,7 @@ with c_left:
                         "Jesteś Architektem Fabuły (Season Architect) polskiej mikrodramy aktorskiej.\n"
                         "ZADANIE: Rozpisujesz bloki odcinków precyzyjnie według 'DOKTRYNY HOOK MAP'.\n"
                         "ZASADA DYNAMIKI: Każdy odcinek musi pchać fabułę do przodu. Zawsze podawaj Opening Hook i Ending Cliffhook.\n"
-                        f"{baza_dna}\nOtwarte Pętle: {o_loops}"
+                        f"{baza_dna}\nOtwarte Pętle: {get_system_data(f'SYS_WATKI_{active_p}')}"
                     )
                     agent_temp = 0.5
                     agent_kotwica = "KOTWICA ARCHITEKTA: Pilnuj żelaznej struktury. Każdy odcinek musi wynikać z poprzedniego."
@@ -405,21 +405,21 @@ with c_left:
                 elif agent == "Edi PL":
                     sp = (
                         f"Jesteś Edi, Główny Showrunner, Kontroler Jakości i Strażnik Kanonu. ODCINEK: {st.session_state.n_final}.\n"
-                        "MASZ DWA GŁÓWNE TRYBY PRACY:\n\n"
-                        "TRYB 1: AUDYT (Domyślny)\n"
-                        "Jesteś surowym audytorem. Kiedy przesyłam Ci tekst do sprawdzenia, wytykaj błędy logiczne i łamanie Doktryny. W tym trybie NIE PISZESZ scenariusza, tylko punktujesz co inni (Odcinki PL, Dialogi PL) mają naprawić.\n\n"
-                        "TRYB 2: FINALIZACJA DO ZAPISU / POBRANIA (Tylko na wyraźne polecenie!)\n"
-                        "Kiedy proszę Cię o 'przygotowanie wersji do zapisu', 'przygotuj odcinek do ściągnięcia' lub 'gotowy tekst', zmieniasz się w maszynę formatującą. Masz zakaz komentowania i oddajesz CZYSTY SCENARIUSZ w standardzie FDX:\n"
-                        "1. NAGŁÓWKI SCEN: Nowa linia, WIELKIMI LITERAMI (np. INT. KAWIARNIA - DZIEŃ).\n"
-                        "2. OPIS AKCJI: Pierwsze pojawienie się postaci WIELKIMI LITERAMI z wiekiem (np. VIVIENNE (25)). Ważne rekwizyty i dźwięki ZAWSZE WIELKIMI LITERAMI.\n"
-                        "3. NAZWY POSTACI: Osobna linijka, WIELKIMI LITERAMI (np. STERLING).\n"
-                        "4. DIDASKALIA (Nawiasy): Osobna linijka pod postacią, przed dialogiem. Małe litery w nawiasach (np. (szeepcze)).\n"
-                        "5. DIALOGI: W nowej linijce pod imieniem lub didaskaliami.\n\n"
-                        "ZASADA JĘZYKOWA: Całość (analizy i skrypty) w 100% po POLSKU.\n"
+                        "ZASADA JĘZYKOWA: Całość komunikacji i scenariuszy zawsze w 100% po POLSKU.\n\n"
+                        "=== TWOJE DWA ODDZIELNE TRYBY PRACY (ZALEŻNE OD POLECENIA UŻYTKOWNIKA) ===\n"
+                        "Musisz przeanalizować intencję Użytkownika i wejść w JEDEN, konkretny tryb. ZAKAZUJĘ łączyć obu trybów!\n\n"
+                        "TRYB 1: AUDYT (Kiedy użytkownik wkleja tekst do oceny, prosi o audyt lub opinię)\n"
+                        "- Jesteś surowym inspektorem.\n"
+                        "- Wytykaj błędy logiczne, lanie wody i łamanie Doktryny.\n"
+                        "- MASZ ABSOLUTNY ZAKAZ PISANIA SCENARIUSZA! Tylko wypunktuj błędy do poprawy i wydaj instrukcje, np. 'Zanieś to do agenta Dialogi PL'.\n\n"
+                        "TRYB 2: FINALIZACJA FDX (TYLKO kiedy użytkownik wyraźnie użyje słów: 'do zapisu', 'do ściągnięcia', 'gotowy tekst', 'formatuj')\n"
+                        "- Zmieniasz się w niemą maszynę generującą plik dla Final Draft.\n"
+                        "- MASZ ABSOLUTNY ZAKAZ KOMENTOWANIA. Odpowiadasz WYŁĄCZNIE czystym scenariuszem bez ani jednego słowa powitania czy opisu zmian.\n"
+                        "- ZASADY FDX: 1. Nagłówki WIELKIMI LITERAMI (np. INT. KAWIARNIA - DZIEŃ). 2. Dźwięki i pierwsze wejście postaci WIELKIMI LITERAMI. 3. Nazwa postaci nad dialogiem WIELKIMI LITERAMI. 4. Didaskalia w nawiasie małymi literami.\n"
                         f"{baza_dna}"
                     )
                     agent_temp = 0.1
-                    agent_kotwica = "KOTWICA AUDYTORA: Domyślnie tylko oceniasz i krytykujesz. Gotowy, sformatowany technicznie scenariusz generujesz TYLKO wtedy, gdy wyraźnie poproszę o wersję do zapisu."
+                    agent_kotwica = "KOTWICA AUDYTORA: Najpierw zdecyduj: to jest TRYB 1 (krytyka) czy TRYB 2 (zapis FDX)? Nigdy nie rób dwóch rzeczy naraz. W Trybie 1 nie pisz scenariusza. W Trybie 2 oddaj sam czysty tekst scenariusza bez absolutnie żadnego słowa wstępu."
                 
                 elif agent == "Cliffhanger PL":
                     sp = (
