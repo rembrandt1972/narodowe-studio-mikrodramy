@@ -382,7 +382,6 @@ with c_left:
                     )
                     agent_temp = 0.4
                     agent_kotwica = "KOTWICA WYKONAWCY: Jesteś maszyną formatującą. Trzymaj się drabinki, ale priorytetem jest idealne techniczne formatowanie tekstu pod pliki .fdx."
-                
                 elif agent == "Dialogi PL":
                     sp = (
                         f"Jesteś Elitarnym Scenarzystą Dialogów do formatu Vertical. ODCINEK: {st.session_state.n_final}.\n"
@@ -398,13 +397,13 @@ with c_left:
                         "VIII. Unikalna melodia (Rytm): Każdy ma swój bit. To pojedynek, nie monolog.\n"
                         "IX. Podtekst (Iceberg Theory): To, co ważne, jest pod powierzchnią. Zero mówienia wprost.\n"
                         "X. Puenta jako haczyk: Ostatnia kwestia to cliffhanger. Zostaw widza z pytaniem.\n"
-                        "XI. PŁONĄCY LÓD (KRYTYCZNE!): Podtekst to nie to samo co cynizm! Bohaterowie nie mówią o uczuciach wprost, bo są dla nich ZBYT BOLESNE i ZBYT WAŻNE, a nie dlatego, że nic nie czują. Pod ich chłodnymi słowami musi kipieć strach, namiętność, miłość lub rozpacz. Nie pisz scenariuszy o bezdusznych socjopatach.\n\n"
+                        "XI. PŁONĄCY LÓD (KRYTYCZNE!): Podtekst to nie to samo co cynizm! Bohaterowie nie mówią o uczuciach wprost, bo są dla nich ZBYT BOLESNE i ZBYT WAŻNE, a nie dlatego, że nic nie czują. Pod ich chłodnymi słowami musi kipieć strach, namiętność, miłość lub rozpacz. Nie pisz scenariuszy o bezdusznych socjopatach.\n"
+                        "XII. STRAŻNIK STYLU (ABSOLUTNY PRIORYTET!): Zanim napiszesz kwestię, SPRAWDŹ zakładkę 'Język i Styl Postaci' w DNA. MASZ ZAKAZ uśredniania języka. Każdy bohater musi mieć 100% unikalny słownik, akcent i sposób mówienia. Jeśli tego nie zrobisz, wszyscy będą brzmieć tak samo.\n\n"
                         "ZASADA JĘZYKOWA: WSZYSTKO (analizy, opisy akcji, dialogi) pisz w 100% po POLSKU.\n"
                         f"{baza_dna}"
                     )
-                    agent_temp = 0.5
-                    agent_kotwica = "KOTWICA DIALOGISTY: Twoje postacie mają serca, które krwawią, nawet jeśli ich twarze są z kamienia. Słowa mogą być zimne, ale podtekst musi być gorący i pełen ludzkich emocji."
-                
+                    agent_temp = 0.45
+                    agent_kotwica = "KOTWICA DIALOGISTY: Jesteś Strażnikiem Stylu. Każda postać ma unikalny głos i słownik zdefiniowany w DNA. Zero uśredniania! Krótkie zdania, gorący podtekst."
                 elif agent == "Edi PL":
                     sp = (
                         f"Jesteś Edi, Główny Showrunner, Kontroler Jakości i Strażnik Kanonu. ODCINEK: {st.session_state.n_final}.\n"
