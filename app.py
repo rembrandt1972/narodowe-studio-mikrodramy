@@ -34,6 +34,7 @@ if "messages" not in st.session_state: st.session_state.messages = []
 if "auth" not in st.session_state: st.session_state.auth = False
 if "active_file" not in st.session_state: st.session_state.active_file = "1"
 if "n_final" not in st.session_state: st.session_state.n_final = "Odcinek 1"
+if "tension_data" not in st.session_state: st.session_state.tension_data = [] # Pamięć dla wykresu napięcia
 
 if not st.session_state.auth:
     st.markdown("<h1 style='text-align: center; padding-top: 20vh; letter-spacing: 0.3em;'>🎬 MIKRODRAMA STUDIO PL</h1>", unsafe_allow_html=True)
@@ -112,6 +113,17 @@ def create_fdx(script_text):
         else: p_type = "Action" 
         paragraphs += f'<Paragraph Type="{p_type}"><Text>{clean_line}</Text></Paragraph>\n'
     return fdx_header + paragraphs + fdx_footer
+
+def calculate_screen_time(text):
+    """Zegarmistrz: Oblicza czas na bazie liczby słów (format short video)."""
+    if not text.strip(): return "0 sek"
+    words = len(text.split())
+    # Średnie tempo w vertical: 1 słowo = ~0.4 sekundy
+    seconds = int(words * 0.4)
+    if seconds < 60:
+        return f"{seconds} sek"
+    else:
+        return f"{seconds // 60} min {seconds % 60} sek"
 
 # --- 5. INTERFEJS SIDEBAR ---
 with st.sidebar:
@@ -213,6 +225,30 @@ with c_right:
     st.markdown("### 📍 GPS FABUŁY")
     st.markdown(f"<div style='color: #d35400; font-weight: bold;'>{get_season_arc(st.session_state.n_final)}</div>", unsafe_allow_html=True)
     
+    st.markdown("### 📈 WYKRES NAPIĘCIA")
+    if st.button("Analizuj napięcie sceny", use_container_width=True):
+        if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+            raw_text_to_analyze = st.session_state.messages[-1]["content"]
+            with st.spinner("AI ocenia Hook Energy..."):
+                try:
+                    prompt_wykres = f"Oceń poziom napięcia emocjonalnego i dramatycznego w podanym tekście w 5 etapach (Początek, Rozwinięcie, Środek, Kulminacja, Cliffhanger). Zwróć WYŁĄCZNIE tablicę JSON z 5 liczbami całkowitymi od 1 do 10 (np. [2, 4, 5, 8, 10]). ZAKAZ dodawania tekstu pobocznego. Tekst: {raw_text_to_analyze}"
+                    resp_wykres = model.generate_content(prompt_wykres, safety_settings=safe_config).text
+                    match = re.search(r'\[(.*?)\]', resp_wykres)
+                    if match:
+                        st.session_state.tension_data = json.loads("[" + match.group(1) + "]")
+                except Exception as e:
+                    st.warning(f"Błąd generowania wykresu: {e}")
+        else:
+            st.warning("Najpierw poproś agenta o wygenerowanie sceny.")
+            
+    if st.session_state.tension_data:
+        df_tension = pd.DataFrame(
+            st.session_state.tension_data, 
+            columns=["Napięcie (1-10)"], 
+            index=["0%", "25%", "50%", "75%", "Hook!"]
+        )
+        st.line_chart(df_tension)
+    
     st.markdown("### DETEKTYW WĄTKÓW")
     o_loops = get_system_data(f"SYS_WATKI_{active_p}")
     st.text_area("Pętle", value=o_loops if o_loops else "Brak otwartych pętli.", height=100, disabled=True, label_visibility="collapsed")
@@ -259,6 +295,7 @@ with c_left:
     with cl1:
         if st.button("NOWY CZAT", use_container_width=True):
             st.session_state.messages = []
+            st.session_state.tension_data = [] # Resetuje wykres
             save_system_data(f"SYS_AUTOSAVE_CHAT_{active_p}", "[]")
             st.rerun()
     with cl2:
@@ -481,6 +518,11 @@ with k3:
 ostatni_tekst = st.session_state.messages[-1]["content"].replace('\x00', '') if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" else ""
 
 st.markdown("### 👀 PODGLĄD DO ZAPISU (EDYTUJ PRZED ZAPISEM)")
+
+# ZEGARMISTRZ (Kalkulator)
+czas_ekranowy = calculate_screen_time(ostatni_tekst)
+st.markdown(f"**⏱️ Szacowany czas ekranowy (Vertical):** <span style='color: #d35400;'>{czas_ekranowy}</span>", unsafe_allow_html=True)
+
 txt_to_save = st.text_area("Treść do zapisu:", value=ostatni_tekst, height=250, label_visibility="collapsed")
 
 if st.button("💉 WSTRZYKNIJ TEN TEKST DO CZATU"):
